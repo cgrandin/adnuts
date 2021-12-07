@@ -22,24 +22,28 @@
 ##   return(z)
 ## }
 
-## A wrapper for running ADMB models in parallel
+# A wrapper for running ADMB models in parallel
 sample_admb_parallel <- function(parallel_number, path, algorithm, ...){
+
   olddir <- getwd()
   on.exit(setwd(olddir))
-  newdir <- paste0(path,"_chain_",parallel_number)
+  newdir <- paste0(path, "_chain_", parallel_number)
   if(dir.exists(newdir)){
-    unlink(newdir, TRUE)
-    if(dir.exists(newdir)) stop(paste("Could not remove folder:", newdir))
+    unlink(newdir, recursive = TRUE, force = TRUE)
   }
   dir.create(newdir)
-  if(!dir.exists(newdir)) stop(paste("Could not create parallel folder:", newdir))
-  trash <- file.copy(from=list.files(path, full.names=TRUE), to=newdir)
-  if(algorithm=="NUTS")
-    fit <- sample_admb_nuts(path=newdir, chain=parallel_number, ...)
-  if(algorithm=="RWM")
-    fit <- sample_admb_rwm(path=newdir, chain=parallel_number, ...)
-  unlink(newdir, TRUE)
-  return(fit)
+  if(!dir.exists(newdir)){
+    stop("Could not create parallel folder: ", newdir, call. = FALSE)
+  }
+  trash <- file.copy(from = list.files(path, full.names = TRUE), to = newdir)
+  if(algorithm == "NUTS"){
+    fit <- sample_admb_nuts(path = newdir, chain = parallel_number, ...)
+  }
+  if(algorithm == "RWM"){
+    fit <- sample_admb_rwm(path = newdir, chain = parallel_number, ...)
+  }
+  unlink(newdir, recursive = TRUE, force = TRUE)
+  fit
 }
 
 ## A wrapper for running TMB models in parallel

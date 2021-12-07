@@ -350,23 +350,26 @@ check_identifiable <- function(model, path=getwd()){
 }
 
 
-## Read in PSV file
-.get_psv <- function(model){
-      if(!file.exists(paste0(model, '.psv'))){
-      ## Sometimes ADMB will shorten the name of the psv file for some
-      ## reason, so need to catch that here.
-      ff <- list.files()[grep(x=list.files(), pattern='psv')]
-      if(length(ff)==1){
-        warning(paste("No .psv file found, using", ff))
-        pars <- R2admb::read_psv(sub('.psv', '', x=ff))
-      } else {
-        stop(paste("No .psv file found -- did something go wrong??"))
-      }
-    } else {
-      ## If model file exists
-      pars <- R2admb::read_psv(model)
-    }
-  return(pars)
+#' Read in PSV file
+#'
+#' @param model The name of the executable (may have a prepended ./)
+#' @param path The path in which the PSV file is located
+#'
+#' @return The contents of the PSV file as read in by [R2admb::read_psv()]
+#' @export
+.get_psv <- function(model, path){
+
+  # Reform model name if necessary
+  model <- gsub("./", "", model)
+  psv_fn <- paste0(model, ".psv")
+
+  if(file.exists(psv_fn)){
+    pars <- read_psv(file.path(path, model))
+  }else{
+    stop(file.path(path, psv_fn), " not found.",
+         call. = FALSE)
+  }
+  pars
 }
 
 ## Update algorithm for mass matrix.
@@ -682,69 +685,79 @@ extract_sampler_params <- function(fit, inc_warmup=FALSE){
 }
 
 
-## Read maximum likelihood fit for ADMB model
-##
-## @param model Model name
-## @return A list containing, MLE estimates, standard errors, covariance
-##   and correlation matrices, and other output from ADMB.
-## @details This is based loosely off read.admbFit from r4ss.
-##
-## @export
-.read_mle_fit <- function(model, path=getwd()){
-  oldwd <- getwd(); on.exit(setwd(oldwd))
+#' Read maximum likelihood fit for ADMB model
+#'
+#' @details This is based loosely on [r4ss::read.admbFit]
+#'
+#' @param model Model executable name
+#' @return A list containing, MLE estimates, standard errors, covariance
+#'   and correlation matrices, and other output from ADMB
+#'
+#' @export
+.read_mle_fit <- function(model,
+                          path = getwd()){
+
+  oldwd <- getwd()
+  on.exit(setwd(oldwd), add = TRUE)
   setwd(path)
-  ## Sequentially read .par file which contains model size, minimum NLL,
-  ## and maxgrad at the top
-  f <- paste(model,'.par', sep='')
+  # Sequentially read .par file which contains model size, minimum NLL,
+  # and maxgrad at the top
+  f <- paste0(model, ".par")
   if(!file.exists(f)){
-    warning(paste("File", f,
-                  "not found so could not read in MLE quantities or parameter names"))
+    warning(f, " not found. Could not read in MLE quantities or parameter names")
     return(NULL)
   }
-  par <- as.numeric(scan(f, what='', n=16, quiet=TRUE)[c(6,11,16)])
+  par <- as.numeric(scan(f, what = "", n = 16, quiet = TRUE)[c(6, 11, 16)])
   nopar <- as.integer(par[1])
-  nll <- par[2] #objective function value
+  # Objective function value
+  nll <- par[2]
   maxgrad <- par[3]
 
-  ## The .cor file contains parameter (and derived quantity) names,
-  ## estimates, and se's. This is more convenient to read in than the .par
-  ## file.
-  f <- paste(model,'.cor', sep='')
+  # The .cor file contains parameter (and derived quantity) names,
+  # estimates, and se's. This is more convenient to read in than the .par
+  # file.
+  f <- paste0(model, ".cor")
   if(!file.exists(f)){
-    warning(paste("File", f,
-                  "not found so could not read in MLE quantities or parameter names"))
+    warning(f, " not found. Could not read in MLE quantities or parameter names")
     return(NULL)
   }
   xx <- readLines(f)
-  ## Total parameter including sdreport variables
-  totPar <- length(xx)-2
-  if(totPar < nopar) {
-    warning(paste("File", f,
-                  "did not match the .cor file.. maybe hessian failed? MLE object not available"))
+  # Total parameter including sdreport variables
+  totPar <- length(xx) - 2
+  if(totPar < nopar){
+    warning(f, " did not match the .cor file. Maybe hessian has failed? MLE object not available")
     return(NULL)
   }
-  ## Log of the determinant of the hessian
-  logDetHess <- as.numeric(strsplit(xx[1], '=')[[1]][2])
-  sublin <- lapply(strsplit(xx[1:totPar+2], ' '),function(x)x[x!=''])
+  # Log of the determinant of the hessian
+  logDetHess <- as.numeric(strsplit(xx[1], "=")[[1]][2])
+  sublin <- lapply(strsplit(xx[1:totPar + 2], " "),function(x) x[x != ""])
   names.all <- unlist(lapply(sublin,function(x)x[2]))[1:nopar]
-  names.all <- as.vector(do.call(c, sapply(unique(names.all), function(n){
-    x <- names.all[names.all==n]
-    if(length(x)==1) return(list(x))
-    list(paste0(x, '[',1:length(x),']'))})))
-  est <- as.numeric(unlist(lapply(sublin,function(x)x[3])))
-  std <- as.numeric(unlist(lapply(sublin,function(x)x[4])))
-  ## The correlation in the bounded space.
+  names.all <- as.vector(do.call(c,
+                                 sapply(unique(names.all), function(n){
+                                   x <- names.all[names.all == n]
+                                   if(length(x)){
+                                     return(list(x))
+                                   }
+                                   list(paste0(x, "[", 1:length(x), "]"))
+                                 }))
+                         )
+  est <- as.numeric(unlist(lapply(sublin,function(x) x[3])))
+  std <- as.numeric(unlist(lapply(sublin,function(x) x[4])))
+  # The correlation in the bounded space.
   cor <- matrix(NA, totPar, totPar)
-  corvec <- unlist(sapply(1:length(sublin), function(i)sublin[[i]][5:(4+i)]))
-  cor[upper.tri(cor, diag=TRUE)] <- as.numeric(corvec)
-  cor[lower.tri(cor)]  <-  t(cor)[lower.tri(cor)]
-  ## Covariance matrix
-  ## cov <- cor*(std %o% std)
-  result <- list(nopar=nopar, nll=nll, maxgrad=maxgrad,
-                 par.names=names.all[1:nopar],
-                 names.all=names.all,
-                 est=est, se=std, cor=cor[1:nopar,1:nopar])
-  return(result)
+  corvec <- unlist(sapply(1:length(sublin), function(i)sublin[[i]][5:(4 + i)]))
+  cor[upper.tri(cor, diag = TRUE)] <- as.numeric(corvec)
+  cor[lower.tri(cor)] <- t(cor)[lower.tri(cor)]
+  # Covariance matrix
+  # cov <- cor*(std %o% std)
+  list(nopar = nopar,
+       nll = nll,
+       maxgrad = maxgrad,
+       par.names = names.all[1:nopar],
+       names.all = names.all,
+       est = est,
+       se = std,
+       cor = cor[1:nopar, 1:nopar])
 }
 
 #' Return the Operating System name in lower case
@@ -833,30 +846,29 @@ get_model_executable <- function(model, loc_dir = getwd(), path_only = FALSE){
               "Using the first one found (", model_path[1], ").")
     }
     found_model_loc <- "path"
-    model <- model_path[1]
   }
   # Check to see if the file is executable (LInux and OSX only)
   if(os != "windows"){
-    stat <- system(paste("stat", model), intern = TRUE)
+    stat <- system(paste("stat", model_path[1]), intern = TRUE)
     perms <- grep("^Access:.*Uid.*$", stat, value = TRUE)
     perms <- gsub("\\).*", "", perms)
     perms <- gsub(".*/","",perms)
     first_perm <- substr(perms, 1, 1)
     user_exec_perm <- substr(perms, 4, 4)
     if(first_perm == "d"){
-      stop("The model name given (", model, ") is a directory and not executable.",
+      stop("The model name given (", model_path[1], ") is a directory and not executable.",
            call. = FALSE)
     }else if(first_perm == "p"){
-      stop("The model name given (", model, ") is a named pipe and not executable.",
+      stop("The model name given (", model_path[1], ") is a named pipe and not executable.",
            call. = FALSE)
     }else if(first_perm == "s"){
-      stop("The model name given (", model, ") is a socket and not executable.",
+      stop("The model name given (", model_path[1], ") is a socket and not executable.",
            call. = FALSE)
     }else if(first_perm %in% c("b", "c")){
-      stop("The model name given (", model, ") is a device block and not executable.",
+      stop("The model name given (", model_path[1], ") is a device block and not executable.",
            call. = FALSE)
     }else if(user_exec_perm != "x"){
-      stop("The file found (", model, ") is not executable.\nCheck name and use chmod to ",
+      stop("The file found (", model_path[1], ") is not executable.\nCheck name and use chmod to ",
            "change permissions if name is correct.",
            call. = FALSE)
     }
@@ -867,4 +879,44 @@ get_model_executable <- function(model, loc_dir = getwd(), path_only = FALSE){
     message("Using model executable found in the PATH: ", model)
   }
   model
+}
+
+#' Read in an ADMB PSV file
+#'
+#' @param fn The filename (with or without the .psv extension)
+#' @param names Column names for the output. If `NULL`, they will be sequential
+#' starting with the letter 'V'
+#'
+#' @return A data frame containing the PSV file output
+read_psv <- function (fn, names = NULL){
+
+  has_psv_ext <- grepl("^.*\\.psv$", fn)
+  if(!has_psv_ext){
+    fn <- paste0(fn, ".psv")
+  }
+  if(!file.exists(fn)){
+    stop(fn, " not found", call. = FALSE)
+  }
+  # Read in the binary file
+  f <- file(fn, open = "rb")
+  nv <- readBin(f, "int")
+  fs <- file.info(fn)$size
+  isize <- 4
+  dsize <- 8
+  ans <- matrix(readBin(f, "double", n = (fs - 4) / 8),
+                byrow = TRUE, ncol = nv)
+  close(f)
+
+  if(is.null(names)){
+    names <- paste0("V", seq(ncol(ans)))
+  }
+  if(length(names) < ncol(ans)){
+    warning("More columns than names: generating dummy names")
+    names <- c(names, paste0("V", seq(length(names) + 1, ncol(ans))))
+  }else if(length(names) < ncol(ans)){
+    warning("More names than columns: truncating names")
+    names <- names[seq(ncol(ans))]
+  }
+  colnames(ans) <- names
+  as.data.frame(ans)
 }

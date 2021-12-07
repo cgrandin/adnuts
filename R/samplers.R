@@ -99,7 +99,7 @@ sample_admb_nuts <- function(path, model, iter=2000,
   sampler_params <- as.matrix(read.csv("adaptation.csv"))
   unbounded <- as.matrix(read.csv("unbounded.csv", header=FALSE))
   dimnames(unbounded) <- NULL
-  pars <- .get_psv(model)
+  pars <- .get_psv(model, path)
   par.names <- names(pars)
   if(!"lp__" %in% dimnames(sampler_params)[[2]]){
     ## Previous version had a bug where energy__ was stored as
@@ -204,7 +204,7 @@ sample_admb_rwm <-
       stop(paste0("RWM failed to run in chain ", chain, ". Check inputs."))
     unbounded <- as.matrix(read.csv("unbounded.csv", header=FALSE))
     dimnames(unbounded) <- NULL
-    pars <- .get_psv(model)
+    pars <- .get_psv(model, path)
     par.names <- names(pars)
     lp <- as.vector(read.table('rwm_lp.txt', header=TRUE)[,1])
     pars[,'log-posterior'] <- lp

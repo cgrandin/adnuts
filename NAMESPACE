@@ -3,6 +3,8 @@
 S3method(plot,adfit)
 S3method(print,adfit)
 S3method(summary,adfit)
+export(.get_psv)
+export(.read_mle_fit)
 export(adfit)
 export(check_identifiable)
 export(extract_sampler_params)

@@ -320,21 +320,38 @@ sample_admb <- function(model, path=getwd(), iter=2000, init=NULL, chains=3, war
     }
     on.exit(snowfall::sfStop())
     mcmc.out <- snowfall::sfLapply(1:chains, function(i)
-      sample_admb_parallel(parallel_number = i, path = path, model = model, duration=duration,
-                           algorithm = algorithm, iter = iter, init = init[[i]], warmup = warmup,
-                           seed = seeds[i], thin = thin, control = control,
-                           skip_optimization = skip_optimization, admb_args = admb_args))
+      sample_admb_parallel(parallel_number = i,
+                           path = path,
+                           model = model,
+                           duration=duration,
+                           algorithm = algorithm,
+                           iter = iter,
+                           init = init[[i]],
+                           warmup = warmup,
+                           seed = seeds[i],
+                           thin = thin,
+                           control = control,
+                           skip_optimization = skip_optimization,
+                           admb_args = admb_args))
   }else{
     mcmc.out <- lapply(1:chains, function(i)
-      sample_admb_nuts(path = path, model = model, warmup = warmup, duration = duration,
-                       iter = iter, init = init[[i]], chain = i, seed = seeds[i],
-                       thin = thin, control = control, admb_args = admb_args,
+      sample_admb_nuts(path = path,
+                       model = model,
+                       warmup = warmup,
+                       duration = duration,
+                       iter = iter,
+                       init = init[[i]],
+                       chain = i,
+                       seed = seeds[i],
+                       thin = thin,
+                       control = control,
+                       admb_args = admb_args,
                        skip_optimization = skip_optimization))
   }
 
   warmup <- mcmc.out[[1]]$warmup
   mle <- .read_mle_fit(model = model, path = path)
-  browser()
+
   if(is.null(mle)){
     par.names <- dimnames(mcmc.out[[1]]$samples)[[2]]
     par.names <- par.names[-length(par.names)]
