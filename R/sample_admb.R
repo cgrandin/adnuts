@@ -411,7 +411,7 @@ sample_admb <- function(model, path=getwd(), iter=2000, init=NULL, chains=3, war
   }
   covar.est <- cov(unbounded)
   if(skip_monitor){
-    message('Skipping ESS and Rhat statistics..')
+    message("Skipping ESS and Rhat statistics")
     mon <- NULL
   }else{
     if(!requireNamespace("rstan", quietly = TRUE)){
@@ -419,7 +419,10 @@ sample_admb <- function(model, path=getwd(), iter=2000, init=NULL, chains=3, war
            "Install it and try again, or set skip_monitor = FALSE",
            call. = FALSE)
     }
-    message("Calculating ESS and Rhat (skip_monitor = TRUE will skip)...")
+    message("Calculating ESS and Rhat (skip_monitor = TRUE will skip) ...")
+    # The following line stops a duplicate rownames error from being thrown
+    # in the rstan::monitor() function
+    dimnames(samples)[[3]] <- NULL
     mon <- rstan::monitor(samples, warmup, print = FALSE)
   }
   result <- list(samples = samples,

@@ -109,7 +109,7 @@ sample_admb_nuts <- function(path, model, iter=2000,
     pars[,'log-posterior'] <- sampler_params[,'energy__']
   } else {
     ## Later versions has a 7th column containing the LP and 6 is
-    ## the energy. Both enegy and lp are correct
+    ## the energy. Both energy and lp are correct
     pars[,'log-posterior'] <- sampler_params[,'lp__']
     ## Drop the lp__ here since not used and may cause issues
     ## downstream.

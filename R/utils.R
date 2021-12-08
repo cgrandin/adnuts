@@ -617,20 +617,24 @@ extract_sampler_params <- function(fit, inc_warmup=FALSE){
   return(invisible(as.data.frame(y)))
 }
 
-## Write matrix of samples to a binary .psv file.
-##
-## @details Useful to combine multiple MCMC runs together into a single
-## .psv file which can then be executed with '-mceval'.
-## @param fn Model name
-## @param samples A matrix or data.frame of samples, each column is a
-##   parameter, each row a sample.
-.write_psv <- function(fn, samples, model.path=getwd()){
+#' Write matrix of samples to a binary .psv file.
+#'
+#' @details Useful to combine multiple MCMC runs together into a single
+#' .psv file which can then be executed with '-mceval'.
+#' @param fn Model executable name
+#' @param samples A matrix or data.frame of samples, each column is a
+#'   parameter, each row a sample.
+.write_psv <- function(fn,
+                       samples,
+                       model.path = getwd()){
+
   samples <- as.matrix(samples)
-  psv <- file.path(model.path, paste0(fn, '.psv'))
-  con <- file(psv, 'wb')
-  writeBin(object=ncol(samples), con=con)
-  writeBin(object=as.vector(t(samples)), con=con)
+  psv <- file.path(model.path, paste0(fn, ".psv"))
+  con <- file(psv, "wb")
+  writeBin(object = ncol(samples), con = con)
+  writeBin(object = as.vector(t(samples)), con = con)
   close(con)
+
 }
 
 ## Read in the ADMB covariance file.
