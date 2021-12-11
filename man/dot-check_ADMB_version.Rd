@@ -20,17 +20,17 @@ to 12.0.}
 }
 \value{
 Nothing, errors out if either model could not be run
-  or the version is incompatible. If compatible nothing
-  happens.
+or the version is incompatible. If compatible nothing
+happens.
 }
 \description{
 Check that the  model is compiled with the right version
 of ADMB which is 12.0 or later
 }
 \details{
-Some functionality of packages \pkg{adnuts} is
-  imbedded in the ADMB source code so that when a model is
-  compiled it is contained in the model executable. If this
-  code does not exist adnuts will fail. The solution is to
-  update ADMB and recompile the model.
+Some functionality of packages \link{adnuts} is
+embedded in the ADMB source code so that when a model is
+compiled it is contained in the model executable. If this
+code does not exist \link{adnuts} will fail. The solution is to
+update ADMB and recompile the model.
 }

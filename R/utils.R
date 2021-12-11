@@ -1,24 +1,22 @@
-
 #' Constructor for the "adfit" (A-D fit) class
-#' @param x Fitted object from \code{\link{sample_admb}}
+#' @param x Fitted object from [sample_admb()]
 #' @return An object of class "adfit"
 #' @export
 adfit <- function(x){
   stopifnot(is.list(x))
-  if(is.null(x$samples)) stop("Samples missing from fit")
-  if(is.null(x$algorithm)) stop("Algorithm missing from fit")
-  class(x) <- 'adfit'
+  if(is.null(x$samples)) stop("Samples missing from fit", call. = FALSE)
+  if(is.null(x$algorithm)) stop("Algorithm missing from fit", call. = FALSE)
+  class(x) <- "adfit"
   x
 }
 
 #' Check object of class adfit
-#' @param x Returned list from \code{\link{sample_admb}}
+#' @param x Returned list from [sample_admb()]
 #' @export
 is.adfit <- function(x) inherits(x, "adfit")
 
-
 #' Plot object of class adfit
-#' @param x Fitted object from \code{\link{sample_admb}}
+#' @param x Fitted object from [sample_admb()]
 #' @param y Ignored
 #' @param ... Ignored
 #' @return Plot created
@@ -27,7 +25,7 @@ is.adfit <- function(x) inherits(x, "adfit")
 plot.adfit <- function(x, y, ...) plot_marginals(x)
 
 #' Print summary of object of class adfit
-#' @param object Fitted object from \code{\link{sample_admb}}
+#' @param object Fitted object from [sample_admb()]
 #' @param ... Ignored
 #' @return Summary printed to screen
 #' @method summary adfit
@@ -35,7 +33,7 @@ plot.adfit <- function(x, y, ...) plot_marginals(x)
 summary.adfit <- function(object, ...) print(object)
 
 #' Print summary of adfit object
-#' @param x Fitted object from \code{\link{sample_admb}}
+#' @param x Fitted object from [sample_admb()]
 #' @param ... Ignored
 #' @return Summary printed to console
 #' @method print adfit
@@ -77,40 +75,38 @@ print.adfit <- function(x, ...){
 #' Plot marginal distributions for a fitted model
 #'
 #' @param fit A fitted object returned by
-#'   \code{\link{sample_admb}}.
+#'   [sample_admb()].
 #' @param pars A numeric or character vector of parameters which
 #'   to plot, for plotting a subset of the total (defaults to all)
 #' @param mfrow A custom grid size (vector of two) to be called
-#'   as \code{par(mfrow)}, overriding the defaults.
+#'   as `par(mfrow)`, overriding the defaults.
 #' @param add.mle Whether to add marginal normal distributions
 #'   determined from the inverse Hessian file
 #' @param add.monitor Whether to add ESS and Rhat information
-#' @param breaks The number of breaks to use in \code{hist()},
+#' @param breaks The number of breaks to use in [graphics::hist()],
 #'   defaulting to 30
 #' @export
 #'
 #' @details This function plots grid cells of all parameters
-#'   in a model, comparing the marginal posterior histogram vs
-#'   the asympotitic normal (red lines) from the inverse
-#'   Hessian. Its intended use is to quickly gauge differences
-#'   between frequentist and Bayesian inference on the same
-#'   model.
+#' in a model, comparing the marginal posterior histogram vs
+#' the asympotitic normal (red lines) from the inverse
+#' Hessian. Its intended use is to quickly gauge differences
+#' between frequentist and Bayesian inference on the same
+#' model.
 #'
-#' If \code{fit$monitor} exists the effective sample size
+#' If `fit$monitor` exists the effective sample size
 #' (ESS) and R-hat estimates are printed in the top right
-#' corner. See
-#' \url{https://mc-stan.org/rstan/reference/Rhat.html} for more
-#' information. Generally Rhat>1.05 or ESS<100 (per chain)
+#' corner. See [https://mc-stan.org/rstan/reference/Rhat.html]
+#' for more information. Generally Rhat>1.05 or ESS<100 (per chain)
 #' suggest inference may be unreliable.
 #'
 #' This function is customized to work with multipage PDFs,
 #' specifically:
-#' \code{pdf('marginals.pdf', onefile=TRUE, width=7,height=5)}
+#' `pdf('marginals.pdf', onefile=TRUE, width=7,height=5)`
 #' produces a nice readable file.
 #' @examples
 #' fit <- readRDS(system.file('examples', 'fit.RDS', package='adnuts'))
 #' plot_marginals(fit, pars=1:2)
-#'
 plot_marginals <- function(fit, pars=NULL, mfrow=NULL,
                            add.mle=TRUE, add.monitor=TRUE,
                            breaks=30){
@@ -192,12 +188,10 @@ plot_marginals <- function(fit, pars=NULL, mfrow=NULL,
   }
 }
 
-
-
 #' Plot adaptation metrics for a fitted model.
 #'
 #' @param fit A fitted object returned by
-#' \code{\link{sample_admb}}.
+#' [sample_admb()].
 #' @param plot Whether to plot the results
 #' @return Prints and invisibly returns a ggplot object
 #'
@@ -223,9 +217,8 @@ plot_sampler_params <- function(fit, plot=TRUE){
     ggplot2::geom_point(alpha=.5) +
     ggplot2::facet_wrap('variable', scales='free_y', ncol=1) + ggplot2::theme_bw()
   if(plot) print(g)
-  return(invisible(g))
+  invisible(g)
 }
-
 
 #' Check that the  model is compiled with the right version
 #' of ADMB which is 12.0 or later
@@ -239,10 +232,10 @@ plot_sampler_params <- function(fit, plot=TRUE){
 #' @return Nothing, errors out if either model could not be run
 #'   or the version is incompatible. If compatible nothing
 #'   happens.
-#' @details Some functionality of packages \pkg{adnuts} is
-#'   imbedded in the ADMB source code so that when a model is
+#' @details Some functionality of packages [adnuts] is
+#'   embedded in the ADMB source code so that when a model is
 #'   compiled it is contained in the model executable. If this
-#'   code does not exist adnuts will fail. The solution is to
+#'   code does not exist [adnuts] will fail. The solution is to
 #'   update ADMB and recompile the model.
 .check_ADMB_version <- function(model, path=getwd(),
                                 min.version=12, warn=TRUE){
@@ -274,15 +267,14 @@ plot_sampler_params <- function(fit, plot=TRUE){
   return(invisible(v))
 }
 
-
 #' Function to generate random initial values from a previous fit using
 #' adnuts
 #'
-#' @param fit An outputted list from \code{\link{sample_admb}}
+#' @param fit An outputted list from [sample_admb()]
 #' @param chains The number of chains for the subsequent run, which
 #'   determines the number to return.
 #' @return A list of lists which can be passed back into
-#'   \code{\link{sample_admb}}.
+#'   [sample_admb()].
 #' @export
 sample_inits <- function(fit, chains){
   post <- extract_samples(fit)
@@ -312,7 +304,6 @@ sample_inits <- function(fit, chains){
   return(hes)
 }
 
-
 #' Check identifiability from model Hessian
 #'
 #' @param path Path to model folder, defaults to working directory
@@ -321,7 +312,7 @@ sample_inits <- function(fit, chains){
 #'   determine which parameters are not identifiable and thus cause the
 #'   Hessian to be non-invertible. Use this to identify which parameters
 #'   are problematic. This function was converted from a version in the
-#'   \code{FishStatsUtils} package.
+#'   [FishStatsUtils] package.
 #' @return Prints output of bad parameters and invisibly returns it.
 #' @export
 check_identifiable <- function(model, path=getwd()){
@@ -349,7 +340,6 @@ check_identifiable <- function(model, path=getwd()){
   }
 }
 
-
 #' Read in PSV file
 #'
 #' @param model The name of the executable (may have a prepended ./)
@@ -357,27 +347,26 @@ check_identifiable <- function(model, path=getwd()){
 #'
 #' @return The contents of the PSV file as read in by [R2admb::read_psv()]
 #' @export
-.get_psv <- function(model, path){
+get_psv <- function(model, path){
 
-  # Reform model name if necessary
-  model <- gsub("./", "", model)
-  psv_fn <- paste0(model, ".psv")
+  psv_fn <- file.path(path, paste0(model, ".psv"))
 
   if(file.exists(psv_fn)){
-    pars <- read_psv(file.path(path, model))
+    pars <- read_psv(psv_fn)
   }else{
-    stop(file.path(path, psv_fn), " not found.",
+    stop(psv_fn, " not found.",
          call. = FALSE)
   }
+
   pars
 }
 
-## Update algorithm for mass matrix.
-##
-## @param fn The current fn function.
-## @param gr The current gr function
-## @param y.cur The current parameter vector in unrotated (Y) space.
-## @param M The new mass matrix
+#' Update algorithm for mass matrix.
+#'
+#' @param fn The current fn function.
+#' @param gr The current gr function
+#' @param y.cur The current parameter vector in unrotated (Y) space.
+#' @param M The new mass matrix
 .rotate_space <- function(fn, gr, M,  y.cur){
   ## Rotation done using choleski decomposition
   ## First case is a dense mass matrix
@@ -406,18 +395,18 @@ check_identifiable <- function(model, path=getwd()){
   return(list(gr2=gr2, fn2=fn2, x.cur=x.cur, chd=chd))
 }
 
-## Update the control list.
-##
-## @param control A list passed from a sampling function
-## @return A list with default control elements updated by those supplied
-##   in \code{control}
+#' Update the control list.
+#'
+#' @param control A list passed from a sampling function
+#' @return A list with default control elements updated by those supplied
+#' in `control`
 .update_control <- function(control){
   default <- list(adapt_delta=0.8, metric='unit', stepsize=NULL,
                   adapt_mass=TRUE, adapt_mass_dense=FALSE,
                   max_treedepth=12)
-  ## Special case if user is doing mle they probably don't want
-  ## mass adaptation turned on. They have to override it by
-  ## setting TRUE for either adaptation option
+  # Special case if user is doing mle they probably don't want
+  # mass adaptation turned on. They have to override it by
+  # setting TRUE for either adaptation option
   if(is.character(control$metric)| is.matrix(control$metric)){
     if(is.null(control$adapt_mass) &
        is.null(control$adapt_mass_dense)){
@@ -432,16 +421,15 @@ check_identifiable <- function(model, path=getwd()){
   return(new)
 }
 
-## Print MCMC progress to console.
-##
-## @param iteration The iteration of the MCMC chain.
-## @param iter The total iterations.
-## @param warmup The number of warmup iterations.
-## @param chain The chain being run (bookkeeping only).
-## @return Nothing. Prints to message to console.
-##
-## @details This function was modeled after the functionality provided by
-## the R package rstan.
+#' Print MCMC progress to console.
+#'
+#' @param iteration The iteration of the MCMC chain.
+#' @param iter The total iterations.
+#' @param warmup The number of warmup iterations.
+#' @param chain The chain being run (bookkeeping only).
+#' @return Nothing. Prints to message to console.
+#' @details This function was modeled after the functionality provided by
+#' the R package rstan.
 .print.mcmc.progress <- function(iteration, iter, warmup, chain){
   i <- iteration
   refresh <- max(10, floor(iter/10))
@@ -454,13 +442,13 @@ check_identifiable <- function(model, path=getwd()){
   }
 }
 
-## Print MCMC timing to console
-## @param time.warmup Time of warmup in seconds.
-## @param time.total Time of total in seconds.
-## @return Nothing. Prints message to console.
-##
-## @details This function was modeled after the functionality provided by
-##   the R package \pkg{rstan}.
+#' Print MCMC timing to console
+#' @param time.warmup Time of warmup in seconds.
+#' @param time.total Time of total in seconds.
+#' @return Nothing. Prints message to console.
+#'
+#' @details This function was modeled after the functionality provided by
+#'   the R package [rstan]
 .print.mcmc.timing <- function(time.warmup, time.total){
   x <- ' Elapsed Time: '
   message(paste0(x, sprintf("%.1f", time.warmup), ' seconds (Warmup)'))
@@ -468,20 +456,20 @@ check_identifiable <- function(model, path=getwd()){
   message(paste0(x, sprintf("%.1f", time.total), ' seconds (Total)'))
 }
 
-## Convert adnuts fit (named list) into a \code{shinystan} object.
-##
-## @details The shinystan packages provides several conversion functions
-##   for objects of different types, such as stanfit classes (Stan ouput)
-##   and simple arrays. For the latter, option NUTS information, such as
-##   \code{sampler_params} can be passed. This function essentially extends
-##   the functionality of \code{as.shinystan} to work specifically with
-##   fits from adnuts (TMB or ADMB). The user can thus explore their model
-##   with \code{launch_shinystan(.as.shinyadnuts(fit))} in the same way
-##   that Stan models are examined.
-## @param fit Output list from  \code{sample_admb}.
-## @seealso launch_shinyadmb
-## @return An S4 object of class shinystan. Depending on the algorithm
-##   used, this list will have slight differences.
+#' Convert adnuts fit (named list) into a \code{shinystan} object.
+#'
+#' @details The shinystan packages provides several conversion functions
+#' for objects of different types, such as stanfit classes (Stan ouput)
+#' and simple arrays. For the latter, option NUTS information, such as
+#' [sampler_params()] can be passed. This function essentially extends
+#' the functionality of [as.shinystan()] to work specifically with
+#' fits from adnuts (TMB or ADMB). The user can thus explore their model
+#' with [launch_shinystan(.as.shinyadnuts(fit))] in the same way
+#' that Stan models are examined.
+#' @param fit Output list from [sample_admb()].
+#' @seealso [launch_shinyadmb()]
+#' @return An S4 object of class shinystan. Depending on the algorithm
+#'   used, this list will have slight differences.
 .as.shinyadnuts <- function(fit){
   if(fit$algorithm=="NUTS"){
     sso <- with(fit, shinystan::as.shinystan(samples, warmup=warmup, max_treedepth=max_treedepth,
@@ -498,16 +486,16 @@ check_identifiable <- function(model, path=getwd()){
 
 #' Launch shinystan for a TMB fit.
 #'
-#' @param fit A named list returned by \code{sample_tmb}.
-#' @seealso \code{launch_shinyadmb}
+#' @param fit A named list returned by [sample_tmb()]
+#' @seealso [launch_shinyadmb()]
 launch_shinytmb <- function(fit){
   shinystan::launch_shinystan(.as.shinyadnuts(fit))
 }
 
 #' Launch shinystan for an ADMB fit.
 #'
-#' @param fit A named list returned by \code{sample_admb}.
-#' @seealso \code{launch_shinytmb}
+#' @param fit A named list returned by [sample_admb()]
+#' @seealso [launch_shinytmb()]
 #' @export
 launch_shinyadmb <- function(fit){
   shinystan::launch_shinystan(.as.shinyadnuts(fit))
@@ -519,33 +507,33 @@ launch_shinyadmb <- function(fit){
 #' A helper function to extract posterior samples across multiple chains
 #' into a single data.frame.
 #'
-#' @details This function is loosely based on the \pkg{rstan} function
-#'   \code{extract}. Merging samples across chains should only be used for
-#'   inference after appropriate diagnostic checks. Do not calculate
-#'   diagnostics like Rhat or effective sample size after using this
-#'   function, instead, use \code{\link[rstan]{monitor}}. Likewise, warmup
-#'   samples are not valid and should never be used for inference, but may
-#'   be useful in some cases for diagnosing issues.
+#' @details This function is loosely based on the function
+#' [rstan::extract()]. Merging samples across chains should only be used for
+#' inference after appropriate diagnostic checks. Do not calculate
+#' diagnostics like Rhat or effective sample size after using this
+#' function, instead, use [rstan::monitor()]. Likewise, `warmup`
+#' samples are not valid and should never be used for inference, but may
+#' be useful in some cases for diagnosing issues.
 #'
-#' @param fit A list returned by \code{sample_admb}.
+#' @param fit A list returned by [sample_admb()]
 #' @param inc_warmup Whether to extract the warmup samples or not
-#'   (default). Warmup samples should never be used for inference, but may
-#'   be useful for diagnostics.
+#' (default). `warmup` samples should never be used for inference, but may
+#' be useful for diagnostics.
 #' @param inc_lp Whether to include a column for the log posterior density
-#'   (last column). For diagnostics it can be useful.
+#' (last column). For diagnostics it can be useful.
 #' @param as.list Whether to return the samples as a list (one element per
-#'   chain). This could then be converted to a CODA mcmc object.
+#' chain). This could then be converted to a [coda::mcmc()] object.
 #' @param unbounded Boolean flag whether to return samples in
-#'   unbounded (untransformed) space. Will only be differences
-#'   when init_bounded types are used in the ADMB template. This
-#'   can be useful for model debugging.
+#' unbounded (untransformed) space. Will only be differences
+#' when init_bounded types are used in the ADMB template. This
+#' can be useful for model debugging.
 #' @return If as.list is FALSE, an invisible data.frame containing samples
-#'   (rows) of each parameter (columns). If multiple chains exist they will
-#'   be rbinded together, maintaining order within each chain. If as.list
-#'   is TRUE, samples are returned as a list of matrices.
+#' (rows) of each parameter (columns). If multiple chains exist they will
+#' be [rbind()]ed together, maintaining order within each chain. If as.list
+#' is `TRUE`, samples are returned as a list of matrices.
 #' @export
 #' @examples
-#' ## A previously run fitted ADMB model
+#' # A previously run fitted ADMB model
 #' fit <- readRDS(system.file('examples', 'fit.RDS', package='adnuts'))
 #' post <- extract_samples(fit)
 #' tail(apply(post, 2, median))
@@ -582,26 +570,25 @@ extract_samples <- function(fit, inc_warmup=FALSE, inc_lp=FALSE,
 #' and treedepth, from a fitted object.
 #'
 #' @details Each trajectory (iteration) in NUTS has associated information
-#'   about the trajectory: stepsize, acceptance ratio, treedepth, and number of
-#'   leapfrog steps. This function extracts these into a data.frame, which
-#'   may be useful for diagnosing issues in certain cases. In general, the
-#'   user should not need to examine them, or preferably should via
-#'   \code{\link{plot_sampler_params}} or  \code{\link{launch_shinyadmb}}.
+#' about the trajectory: stepsize, acceptance ratio, treedepth, and number of
+#' leapfrog steps. This function extracts these into a data.frame, which
+#' may be useful for diagnosing issues in certain cases. In general, the
+#' user should not need to examine them, or preferably should via
+#' [plot_sampler_params()] or [launch_shinyadmb()].
 #'
-#' @param fit A list returned by \code{sample_admb}.
-#' @param inc_warmup Whether to extract the warmup samples or not
-#'   (default). Warmup samples should never be used for inference, but may
-#'   be useful for diagnostics.
+#' @param fit A list returned by [sample_admb()]
+#' @param inc_warmup Whether to extract the `warmup` samples or not
+#' (default). `warmup` samples should never be used for inference, but may
+#'  be useful for diagnostics
 #' @return An invisible data.frame containing samples (rows) of each
-#'   parameter (columns). If multiple chains exist they will be rbinded
-#'   together.
-#' @seealso \code{\link{launch_shinyadmb}}.
+#' parameter (columns). If multiple chains exist they will be [rbind()]ed
+#' together
+#' @seealso [launch_shinyadmb()]
 #' @export
 #' @examples
 #' fit <- readRDS(system.file('examples', 'fit.RDS', package='adnuts'))
 #' sp <- extract_sampler_params(fit, inc_warmup=TRUE)
 #' str(sp)
-#'
 extract_sampler_params <- function(fit, inc_warmup=FALSE){
   x <- fit$sampler_params
   if(!is.list(x)) stop("fit$sampler_parameters is not a list -- valid fit object?")
@@ -620,93 +607,100 @@ extract_sampler_params <- function(fit, inc_warmup=FALSE){
 #' Write matrix of samples to a binary .psv file.
 #'
 #' @details Useful to combine multiple MCMC runs together into a single
-#' .psv file which can then be executed with '-mceval'.
+#' .psv file which can then be executed with `-mceval`.
 #' @param fn Model executable name
 #' @param samples A matrix or data.frame of samples, each column is a
-#'   parameter, each row a sample.
-.write_psv <- function(fn,
-                       samples,
-                       model.path = getwd()){
+#'  parameter, each row a sample.
+write_psv <- function(fn,
+                      samples,
+                      path = NULL){
 
   samples <- as.matrix(samples)
-  psv <- file.path(model.path, paste0(fn, ".psv"))
+  psv <- file.path(path, paste0(fn, ".psv"))
   con <- file(psv, "wb")
+  on.exit(close(con), add = TRUE)
   writeBin(object = ncol(samples), con = con)
   writeBin(object = as.vector(t(samples)), con = con)
-  close(con)
-
 }
 
-## Read in the ADMB covariance file.
-##
-## @param model.path Path to model (defaults to working directory)
-## @export
-.get.admb.cov <- function(model.path=getwd()){
-    wd.old <- getwd(); on.exit(setwd(wd.old))
-    setwd(model.path)
-    filename <- file("admodel.cov", "rb")
-    on.exit(close(filename), add=TRUE)
-    num.pars <- readBin(filename, "integer", 1)
-    cov.vec <- readBin(filename, "numeric", num.pars^2)
-    cov.unbounded <- matrix(cov.vec, ncol=num.pars, nrow=num.pars)
-    hybrid_bounded_flag <- readBin(filename, "integer", 1)
-    scale <- readBin(filename, "numeric", num.pars)
-    cov.bounded <- cov.unbounded*(scale %o% scale)
-    result <- list(num.pars=num.pars, cov.bounded=cov.bounded,
-                   cov.unbounded=cov.unbounded,
-                   hybrid_bounded_flag=hybrid_bounded_flag, scale=scale)
-    return(result)
+#' Read in the ADMB covariance file.
+#'
+#' @param path Path to model
+#' @export
+get_admb_cov <- function(path = NULL){
+
+  out <- list()
+  cov_file <- file.path(path, "admodel.cov")
+  cov_file_bin <- file(cov_file, "rb")
+  on.exit(close(cov_file_bin), add = TRUE)
+  out$num_pars <- readBin(cov_file_bin, "integer", 1)
+  cov_vec <- readBin(cov_file_bin, "numeric", out$num_pars ^ 2)
+  out$cov_unbounded <- matrix(cov_vec, ncol = out$num_pars, nrow = out$num_pars)
+  out$hybrid_bounded_flag <- readBin(cov_file_bin, "integer", 1)
+  out$scale <- readBin(cov_file_bin, "numeric", out$num_pars)
+  out$cov_bounded <- out$cov_unbounded * (out$scale %o% out$scale)
+
+  out
 }
 
-## Write a covariance matrix to admodel.cov.
-##
-## @param cov.unbounded The cov matrix in unbounded space.
-## @param hbf The hybrid_bounded_flag value. Use hbf=1 for HMC.
-## @param model.path Path to model.
-.write.admb.cov <- function(cov.unbounded, model.path=getwd(), hbf=NULL){
-  temp <- file.exists(paste0(model.path, "/admodel.cov"))
-  if(!temp) stop(paste0("Couldn't find file ",model.path, "/admodel.cov"))
-  temp <- file.copy(from=paste0(model.path, "/admodel.cov"),
-                    to=paste0(model.path, "/admodel_original.cov"))
-  wd.old <- getwd()
-  setwd(model.path)
-  ## Read in the output files
-  results <- .get.admb.cov()
-  if(is.null(hbf)) hbf=results$hybrid_bounded_flag
+#' Write a covariance matrix to admodel.cov.
+#'
+#' @param cov_unbounded The cov matrix in unbounded space
+#' @param hbf The hybrid_bounded_flag value. Use `hbf = 1` for HMC.
+#' @param model_path Path to model.
+#' @export
+write_admb_cov <- function(cov_unbounded,
+                           path = NULL,
+                           hbf = NULL){
+
+  cov_file <- file.path(path, "admodel.cov")
+  cov_bck_file <- file.path(path, "admodel_original.cov")
+  if(!file.exists(cov_file)){
+    stop(cov_file, "does not exist", call. = FALSE)
+  }
+  # Create backup of the covariance file
+  file.copy(from = cov_file,
+            to = cov_bck_file,
+            overwrite = TRUE)
+
+  # Read in the output files
+  results <- get_admb_cov(path)
+
+  if(is.null(hbf)){
+    hbf <- results$hybrid_bounded_flag
+  }
   scale <- results$scale
-  num.pars <- results$num.pars
-  if(NROW(cov.unbounded) != num.pars)
-    stop(paste0("Invalid size of covariance matrix, should be: ", num.pars,
-                "instead of ",NROW(cov.unbounded), ". Do you need to rerun the model?"))
-  ## Write it to file using original scales, although these are ignored.
-  setwd(wd.old)
-  file.new <- file(paste0(model.path, "/admodel.cov"),"wb")
-  on.exit(close(file.new))
-  writeBin(as.integer(num.pars), con=file.new)
-  writeBin(as.vector(as.numeric(cov.unbounded)), con=file.new)
-  writeBin(as.integer(hbf), con=file.new)
-  writeBin(as.vector(scale), con=file.new)
-}
+  num_pars <- results$num_pars
+  if(NROW(cov_unbounded) != num_pars)
+    stop("Invalid size of covariance matrix, should be: ", num_pars,
+         "instead of ", NROW(cov_unbounded) ,". Try re-running the model",
+         call. = FALSE)
 
+  # Write it to file using original scales, although these are ignored.
+  cov_file_bin <- file(cov_file, "wb")
+  on.exit(close(cov_file_bin))
+  writeBin(as.integer(num_pars), con = cov_file_bin)
+  writeBin(as.vector(as.numeric(cov_unbounded)), con = cov_file_bin)
+  writeBin(as.integer(hbf), con = cov_file_bin)
+  writeBin(as.vector(scale), con = cov_file_bin)
+
+}
 
 #' Read maximum likelihood fit for ADMB model
 #'
-#' @details This is based loosely on [r4ss::read.admbFit]
+#' @details This is based loosely on [r4ss::read.admbFit()]
 #'
 #' @param model Model executable name
 #' @return A list containing, MLE estimates, standard errors, covariance
-#'   and correlation matrices, and other output from ADMB
+#' and correlation matrices, and other output from ADMB
 #'
 #' @export
-.read_mle_fit <- function(model,
-                          path = getwd()){
+read_mle_fit <- function(model,
+                         path = NULL){
 
-  oldwd <- getwd()
-  on.exit(setwd(oldwd), add = TRUE)
-  setwd(path)
   # Sequentially read .par file which contains model size, minimum NLL,
   # and maxgrad at the top
-  f <- paste0(model, ".par")
+  f <- file.path(path, paste0(model, ".par"))
   if(!file.exists(f)){
     warning(f, " not found. Could not read in MLE quantities or parameter names")
     return(NULL)
@@ -720,7 +714,7 @@ extract_sampler_params <- function(fit, inc_warmup=FALSE){
   # The .cor file contains parameter (and derived quantity) names,
   # estimates, and se's. This is more convenient to read in than the .par
   # file.
-  f <- paste0(model, ".cor")
+  f <- file.path(path, paste0(model, ".cor"))
   if(!file.exists(f)){
     warning(f, " not found. Could not read in MLE quantities or parameter names")
     return(NULL)
@@ -805,6 +799,7 @@ get_model_executable <- function(model, loc_dir = getwd(), path_only = FALSE){
 
   stopifnot(is.character(loc_dir))
   stopifnot(is.character(model))
+
   if(!path_only && !dir.exists(loc_dir)){
     stop(paste0("Directory ", loc_dir, " does not exist. Check argument 'loc_dir'"),
          call. = FALSE)

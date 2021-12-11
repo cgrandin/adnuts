@@ -7,7 +7,7 @@
 adfit(x)
 }
 \arguments{
-\item{x}{Fitted object from \code{\link{sample_admb}}}
+\item{x}{Fitted object from \code{\link[=sample_admb]{sample_admb()}}}
 }
 \value{
 An object of class "adfit"

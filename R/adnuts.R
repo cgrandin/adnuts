@@ -11,25 +11,25 @@
 #' al. 2017). This algorithm provides fast, efficient sampling across a
 #' wide range of models, including hierarchical ones, and thus can be used
 #' as a generic modeling tool (Monnahan et al. 2017). The functionality
-#' provided by \pkg{adnuts} is based loosely off Stan and \R package
-#' \pkg{rstan}
+#' provided by [adnuts] is based loosely off Stan and \R package
+#' [rstan]
 #'
-#' The \pkg{adnuts} \R package provides an \R workflow for NUTS
+#' The [adnuts] R package provides an R workflow for NUTS
 #'   sampling for ADMB models (Fournier et al. 2011), including
 #'   adaptation of step size and metric (mass matrix), parallel
 #'   execution, and links to diagnostic and inference tools
-#'   provided by \pkg{rstan} and \pkg{shinystan}.  The ADMB
+#'   provided by [rstan] and [shinystan].  The ADMB
 #'   implementation of NUTS code is bundled into the ADMB source
 #'   itself (as of version 12.0). Thus, when a user builds an
 #'   ADMB model the NUTS code is incorporated into the model
-#'   executable. Thus, \pkg{adnuts} simply provides a convenient
+#'   executable. Thus, [adnuts] simply provides a convenient
 #'   set of wrappers to more easily execute, diagnose, and make
 #'   inference on a model. More details can be found in the
 #'   package vignette.
 #'
-#' Note that previous versions of \pkg{adnuts} included
+#' Note that previous versions of [adnuts] included
 #'   functionality for TMB models, but this has been replaced by
-#'   \pkg{tmbstan} (Kristensen et al. 2016, Monnahan and
+#'   [adnuts] (Kristensen et al. 2016, Monnahan and
 #'   Kristensen 2018).
 #'
 #' @references
@@ -72,12 +72,13 @@
 #'
 #' @docType package
 #' @name adnuts
-#' @import snowfall
+#' @importFrom snowfall sfStop sfInit sfExportAll sfLapply
 #' @importFrom stats rnorm runif cov acf cor dnorm qnorm
 #' @importFrom utils read.csv read.table write.table
 #' @importFrom grDevices gray rgb
 #' @importFrom graphics axis box hist legend lines mtext par plot points text
 #' @importFrom ellipse ellipse
+#' @importFrom matrixcalc is.positive.definite
 #' @importFrom rstan monitor
 #' @importFrom ggplot2 ggplot aes geom_point theme_bw facet_wrap
 NULL

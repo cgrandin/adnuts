@@ -9,7 +9,7 @@ read_psv(fn, names = NULL)
 \arguments{
 \item{fn}{The filename (with or without the .psv extension)}
 
-\item{names}{Column names for the output. If `NULL`, they will be sequential
+\item{names}{Column names for the output. If \code{NULL}, they will be sequential
 starting with the letter 'V'}
 }
 \value{

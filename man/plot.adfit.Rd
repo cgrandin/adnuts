@@ -7,7 +7,7 @@
 \method{plot}{adfit}(x, y, ...)
 }
 \arguments{
-\item{x}{Fitted object from \code{\link{sample_admb}}}
+\item{x}{Fitted object from \code{\link[=sample_admb]{sample_admb()}}}
 
 \item{y}{Ignored}
 

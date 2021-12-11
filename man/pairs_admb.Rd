@@ -22,26 +22,26 @@ pairs_admb(
 )
 }
 \arguments{
-\item{fit}{A list as returned by \code{sample_admb}.}
+\item{fit}{A list as returned by \code{\link[=sample_admb]{sample_admb()}}}
 
 \item{order}{The order to consider the parameters. Options are
-NULL (default) to use the order declared in the model, or
-'slow' and 'fast' which are based on the effective sample
+\code{NULL} (default) to use the order declared in the model, or
+\code{slow} and \code{fast} which are based on the effective sample
 sizes ordered by slowest or fastest mixing respectively. See
-example for usage.}
+example below  for usage.}
 
 \item{diag}{What type of plot to include on the diagonal,
-options are 'acf' which plots the autocorrelation function
-\code{acf}, 'hist' shows marginal posterior histograms, and
-'trace' the trace plot.}
+options are \code{acf} which plots the autocorrelation function
+\code{\link[stats:acf]{stats::acf()}}, \code{hist} shows marginal posterior histograms (\code{\link[graphics:hist]{graphics::hist()}}),
+and \code{trace} the trace plot}
 
-\item{acf.ylim}{If using the acf function on the diagonal,
-specify the y limit. The default is c(-1,1).}
+\item{acf.ylim}{If using the \code{\link[stats:acf]{stats::acf()}} function on the diagonal,
+specify the y limit. The default is \code{c(-1, 1)}}
 
-\item{ymult}{A vector of length ncol(posterior) specifying how
-much room to give when using the hist option for the
+\item{ymult}{A vector of length \code{ncol(posterior)} specifying how
+much room to give when using the \code{hist} option for the
 diagonal. For use if the label is blocking part of the
-plot. The default is 1.3 for all parameters.}
+plot. The default is \code{1.3} for all parameters}
 
 \item{axis.col}{Color of axes}
 
@@ -53,47 +53,47 @@ a few key ones.}
 \item{label.cex}{Control size of outer and diagonal labels (default 1)}
 
 \item{limits}{A list containing the ranges for each parameter
-to use in plotting.}
+to use in plotting}
 
 \item{add.mle}{Boolean whether to add 95\% confidence ellipses}
 
 \item{add.monitor}{Boolean whether to print effective sample}
 
-\item{unbounded}{Whether to use the bounded or unbounded
-version of the parameters.
-size (ESS) and Rhat values on the diagonal.}
+\item{unbounded}{Whether to use the bounded or unbounded version
+of the parameters \code{size} (ESS) and \code{Rhat} values on the diagonal}
 
 \item{...}{Arguments to be passed to plot call in lower
 diagonal panels}
 }
 \value{
-Produces a plot, and returns nothing.
+Produces a plot, and returns nothing
 }
 \description{
 Plot pairwise parameter posteriors and optionally the MLE points and
 confidence ellipses.
 }
 \details{
-This function is modified from the base \code{pairs}
-  code to work specifically with fits from the
-  'adnuts' package using either the NUTS or RWM MCMC
-  algorithms. If an invertible Hessian was found (in
-  \code{fit$mle}) then estimated covariances are available to
-  compare and added automatically (red ellipses). Likewise, a
-  "monitor" object from \code{rstan::monitor} is attached as
-  \code{fit$monitor} and provides effective sample sizes (ESS)
-  and Rhat values. The ESS are used to potentially order the
-  parameters via argument \code{order}, but also printed on
-  the diagonal.
+This function is modified from the \code{\link[=pairs]{pairs()}}
+code to work specifically with fits from the
+\link{adnuts} package using either the NUTS or RWM MCMC
+algorithms. If an invertible Hessian was found (in \code{fit$mle})
+then estimated covariances are available to
+compare and added automatically (red ellipses). Likewise, a
+\code{monitor} object from \code{\link[rstan:monitor]{rstan::monitor()}} is attached as
+\code{fit$monitor} and provides effective sample sizes (ESS)
+and Rhat values. The ESS are used to potentially order the
+parameters via argument \code{order}, but also printed on
+the diagonal.
 }
 \examples{
+\dontrun{
 fit <- readRDS(system.file('examples', 'fit.RDS', package='adnuts'))
 pairs_admb(fit)
 pairs_admb(fit, pars=1:2)
 pairs_admb(fit, pars=c('b', 'a'))
 pairs_admb(fit, pars=1:2, order='slow')
 pairs_admb(fit, pars=1:2, order='fast')
-
+}
 }
 \author{
 Cole Monnahan

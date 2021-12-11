@@ -7,7 +7,7 @@
 is.adfit(x)
 }
 \arguments{
-\item{x}{Returned list from \code{\link{sample_admb}}}
+\item{x}{Returned list from \code{\link[=sample_admb]{sample_admb()}}}
 }
 \description{
 Check object of class adfit

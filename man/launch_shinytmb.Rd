@@ -7,11 +7,11 @@
 launch_shinytmb(fit)
 }
 \arguments{
-\item{fit}{A named list returned by \code{sample_tmb}.}
+\item{fit}{A named list returned by \code{\link[=sample_tmb]{sample_tmb()}}}
 }
 \description{
 Launch shinystan for a TMB fit.
 }
 \seealso{
-\code{launch_shinyadmb}
+\code{\link[=launch_shinyadmb]{launch_shinyadmb()}}
 }

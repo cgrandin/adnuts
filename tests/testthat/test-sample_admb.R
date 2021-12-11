@@ -115,7 +115,7 @@ test_that("warnings and errors in sample_nuts and sample_rwm",{
                        regexp='NUTS failed to run')
   test <- expect_error(sample_nuts('simple', path='../simple',
                                    iter=1000, init=inits,
-                                   chains=3, cores=1,
+                                   chains=3,
                                    control=list(adapt_delta=1.5)),
                        regexp='NUTS failed to run')
   test <- expect_error(sample_rwm('simple', path='../simple',

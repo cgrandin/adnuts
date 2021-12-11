@@ -1,52 +1,46 @@
+#' A wrapper for running ADMB models in parallel
+#'
+#' @param parallel_number The chain number
+#' @param path The path name to append the chain number to
+#' @param algorithm NUTS or RWM
+#' @param ... Arguments passed to the [fit()] function
+#'
+#' @return Output from the [fit()] function
+#' @export
+sample_admb_parallel <- function(parallel_number,
+                                 path,
+                                 algorithm,
+                                 ...){
 
-## #' Combine multiple fits as returned from \code{sample_tmb} or
-## #' \code{sample_admb} run as a single chain.
-## #'
-## #' @param fits A list of fits, each having a single chain
-## #' @return A merged fit across chains.
-## combine_fits <- function(fits){
-##   z <- list()
-##   test <- lapply(fits, function(x) x$samples)
-##   samples <- array(NA, dim=c(nrow(test[[1]]), length(test), ncol(test[[1]])))
-##   dimnames(samples) <- dimnames(fits[[1]]$samples)
-##   for(i in 1:length(test)) samples[,i,] <- test[[i]]
-##   z$samples <- samples
-##   sp <- sapply(fits, function(x) x$sampler_params)
-##   z$sampler_params <- sp
-##   z$time.warmup <- unlist(lapply(fits, function(x) x$time.warmup))
-##   z$time.total <- unlist(lapply(fits, function(x) x$time.total))
-##   z$algorithm <- fits[[1]]$algorithm
-##   z$warmup <- fits[[1]]$warmup
-##   z$model <- fits[[1]]$model
-##   z$max_treedepth <- fits[[1]]$max_treedepth
-##   return(z)
-## }
-
-# A wrapper for running ADMB models in parallel
-sample_admb_parallel <- function(parallel_number, path, algorithm, ...){
-
-  olddir <- getwd()
-  on.exit(setwd(olddir))
-  newdir <- paste0(path, "_chain_", parallel_number)
-  if(dir.exists(newdir)){
-    unlink(newdir, recursive = TRUE, force = TRUE)
+  chain_dir <- file.path(path, paste0("chain_", parallel_number))
+  if(dir.exists(chain_dir)){
+    unlink(chain_dir, recursive = TRUE, force = TRUE)
   }
-  dir.create(newdir)
-  if(!dir.exists(newdir)){
-    stop("Could not create parallel folder: ", newdir, call. = FALSE)
+  dir.create(chain_dir)
+  if(!dir.exists(chain_dir)){
+    stop("Could not create directory: ", chain_dir, call. = FALSE)
   }
-  trash <- file.copy(from = list.files(path, full.names = TRUE), to = newdir)
+  trash <- file.copy(from = list.files(path, full.names = TRUE),
+                     to = chain_dir)
   if(algorithm == "NUTS"){
-    fit <- sample_admb_nuts(path = newdir, chain = parallel_number, ...)
+    fit <- sample_admb_nuts(path = chain_dir,
+                            chain = parallel_number,
+                            ...)
+  }else if(algorithm == "RWM"){
+    fit <- sample_admb_rwm(path = chain_dir,
+                           chain = parallel_number,
+                           ...)
+  }else{
+    stop("Algorithm must be either 'NUTS' or 'RWM'", call. = FALSE)
   }
-  if(algorithm == "RWM"){
-    fit <- sample_admb_rwm(path = newdir, chain = parallel_number, ...)
-  }
-  unlink(newdir, recursive = TRUE, force = TRUE)
+  unlink(chain_dir,
+         recursive = TRUE,
+         force = TRUE)
+
   fit
 }
 
-## A wrapper for running TMB models in parallel
+# A wrapper for running TMB models in parallel
 sample_tmb_parallel <-  function(parallel_number, obj, init, path,
                                  algorithm, lower, upper, seed, laplace, ...){
   ## Each node starts in a random work directory. Rebuild TMB model obj so

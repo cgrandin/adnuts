@@ -19,8 +19,8 @@ Check identifiability from model Hessian
 }
 \details{
 Read in the admodel.hes file and check the eigenvalues to
-  determine which parameters are not identifiable and thus cause the
-  Hessian to be non-invertible. Use this to identify which parameters
-  are problematic. This function was converted from a version in the
-  \code{FishStatsUtils} package.
+determine which parameters are not identifiable and thus cause the
+Hessian to be non-invertible. Use this to identify which parameters
+are problematic. This function was converted from a version in the
+\link{FishStatsUtils} package.
 }
