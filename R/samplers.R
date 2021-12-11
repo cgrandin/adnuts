@@ -111,7 +111,7 @@ sample_admb_nuts <- function(path,
   }
 
   # Run it and get results
-  time <- system.time(shell(cmd, ignore.stdout = !verbose))[3]
+  time <- system.time(system_(cmd, ignore.stdout = !verbose))[3]
   if(!file.exists(file.path(path, "adaptation.csv")) ||
      !file.exists(file.path(path, "unbounded.csv"))){
 
@@ -230,7 +230,7 @@ sample_admb_rwm <-
     if(!is.null(admb_args)) cmd <- paste(cmd, admb_args)
 
     ## Run it and get results
-    time <- system.time(shell(cmd, ignore.stdout=!verbose))[3]
+    time <- system.time(system_(cmd, ignore.stdout=!verbose))[3]
     if(!file.exists('unbounded.csv'))
       stop(paste0("RWM failed to run in chain ", chain, ". Check inputs."))
     unbounded <- as.matrix(read.csv("unbounded.csv", header=FALSE))

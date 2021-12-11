@@ -208,8 +208,8 @@ trash <- file.copy(from=list.files(path.simple, full.names=TRUE), to=path)
 ## Compile and run model
 oldwd <- getwd()
 setwd(path)
-system('admb simple.tpl')
-system('simple')
+system_('admb simple.tpl')
+system_('simple')
 setwd('..')
 init <- function() rnorm(2)
 ## Run NUTS with defaults

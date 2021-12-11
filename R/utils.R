@@ -919,3 +919,17 @@ read_psv <- function (fn, names = NULL){
   colnames(ans) <- names
   as.data.frame(ans)
 }
+
+#' Call [shell()] or [system()] depending on the Operating System
+#'
+#' @param ... Pass all arguments to the command function
+#'
+#' @return The output from the command function called
+#' @export
+system_ <- function(...){
+  if(get_os() == "windows"){
+    shell(...)
+  }else{
+    system(...)
+  }
+}

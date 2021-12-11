@@ -110,8 +110,8 @@
 #' ## Compile and run model
 #' oldwd <- getwd()
 #' setwd(path)
-#' system('admb simple.tpl')
-#' system('simple')
+#' system_('admb simple.tpl')
+#' system_('simple')
 #' setwd('..')
 #' init <- function() rnorm(2)
 #' ## Run NUTS with defaults
@@ -299,7 +299,7 @@ sample_admb <- function(model,
   write.table(unbounded, file = file.path(path, "unbounded.csv"), sep = ",", col.names = FALSE, row.names = FALSE)
   if(mceval){
     message("Running -mceval on merged chains")
-    shell(paste0("cd ", path, " && ", model, " -mceval"), ignore.stdout = FALSE)
+    system_(paste0("cd ", path, " && ", model, " -mceval"), ignore.stdout = FALSE)
   }
   covar_est <- cov(unbounded)
   if(skip_monitor){
