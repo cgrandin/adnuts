@@ -29,6 +29,8 @@ Suggests:
   testthat (>= 2.1.0)
 Imports:
   ellipse,
+  furrr,
+  future,
   ggplot2,
   matrixcalc,
   rlang,

@@ -128,6 +128,8 @@ NULL
 #' @rdname wrappers
 #' @param algorithm The algorithm to use, one of "NUTS" or "RWM"
 #' @export
+#' @importFrom furrr future_map
+#' @importFrom future plan
 sample_admb <- function(model,
                         path = NULL,
                         iter = 2000,
@@ -207,14 +209,8 @@ sample_admb <- function(model,
     unlink(file.path(path, files_to_trash))
   }
   if(parallel){
-    sfStop()
-    sfInit(parallel = TRUE, cpus = chains)
-    # Errors out with empty workspace
-    if(length(ls(envir = globalenv()))){
-      sfExportAll()
-    }
-    on.exit(sfStop())
-    mcmc.out <- sfLapply(seq_len(chains), function(i)
+    plan("multisession", workers = chains)
+    mcmc.out <- future_map(seq_len(chains), function(i){
       sample_admb_parallel(parallel_number = i,
                            path = path,
                            model = model,
@@ -227,7 +223,9 @@ sample_admb <- function(model,
                            thin = thin,
                            control = control,
                            skip_optimization = skip_optimization,
-                           admb_args = admb_args))
+                           admb_args = admb_args)
+      })
+    plan()
   }else{
     mcmc.out <- lapply(seq_len(chains), function(i)
       sample_admb_parallel(parallel_number = i,
