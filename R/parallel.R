@@ -20,8 +20,10 @@ sample_admb_parallel <- function(parallel_number,
   if(!dir.exists(chain_dir)){
     stop("Could not create directory: ", chain_dir, call. = FALSE)
   }
+
   trash <- file.copy(from = list.files(path, full.names = TRUE),
                      to = chain_dir)
+
   if(algorithm == "NUTS"){
     fit <- sample_admb_nuts(path = chain_dir,
                             chain = parallel_number,
@@ -52,7 +54,7 @@ sample_tmb_parallel <-  function(parallel_number, obj, init, path,
   new.par <- obj$env$parameters
   new.par[map.index] <- lapply(obj$env$parameters[map.index], function(x) attr(x, "shape"))
   obj <- TMB::MakeADFun(data=obj$env$data, parameters=new.par, random=obj$env$random,
-                   map=obj$env$map, DLL=obj$env$DLL, silent=TRUE)
+                        map=obj$env$map, DLL=obj$env$DLL, silent=TRUE)
   obj$env$beSilent()
 
   ## Ignore parameters declared as random? Borrowed from tmbstan.
@@ -94,9 +96,9 @@ sample_tmb_parallel <-  function(parallel_number, obj, init, path,
   }
   if(algorithm=="NUTS")
     fit <- sample_tmb_nuts(chain=parallel_number, fn=fn, gr=gr,
-                         init=init, seed=seed, ...)
+                           init=init, seed=seed, ...)
   if(algorithm=="RWM")
     fit <- sample_tmb_rwm(chain=parallel_number, fn=fn, init=init,
-                        seed=seed, ...)
+                          seed=seed, ...)
   return(fit)
 }

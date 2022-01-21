@@ -135,7 +135,6 @@ sample_admb <- function(model,
                         iter = 2000,
                         init = NULL,
                         chains = 3,
-                        parallel = TRUE,
                         warmup = NULL,
                         seeds = NULL,
                         thin = 1,
@@ -146,7 +145,9 @@ sample_admb <- function(model,
                         skip_optimization = TRUE,
                         skip_monitor = FALSE,
                         skip_unbounded = TRUE,
-                        admb_args = NULL){
+                        admb_args = NULL,
+                        hess_step = FALSE,
+                        parallel = TRUE){
 
   if(is.null(path)){
     stop("You must supply a path which contains the model files", call. = FALSE)
@@ -208,9 +209,10 @@ sample_admb <- function(model,
   if(length(files_to_trash)){
     unlink(file.path(path, files_to_trash))
   }
+
   if(parallel){
     plan("multisession", workers = chains)
-    mcmc.out <- future_map(seq_len(chains), function(i){
+    mcmc.out <- future_map(seq_len(chains), function(i)
       sample_admb_parallel(parallel_number = i,
                            path = path,
                            model = model,
@@ -223,15 +225,15 @@ sample_admb <- function(model,
                            thin = thin,
                            control = control,
                            skip_optimization = skip_optimization,
-                           admb_args = admb_args)
-      })
+                           admb_args = admb_args,
+                           hess_step = hess_step))
     plan()
   }else{
-    mcmc.out <- lapply(seq_len(chains), function(i)
+    mcmc.out <- lapply(seq_len(chains), function(i){
       sample_admb_parallel(parallel_number = i,
                            path = path,
                            model = model,
-                           duration=duration,
+                           duration = duration,
                            algorithm = algorithm,
                            iter = iter,
                            init = init[[i]],
@@ -240,7 +242,8 @@ sample_admb <- function(model,
                            thin = thin,
                            control = control,
                            skip_optimization = skip_optimization,
-                           admb_args = admb_args))
+                           admb_args = admb_args,
+                           hess_step = hess_step)})
   }
   warmup <- mcmc.out[[1]]$warmup
   mle <- read_mle_fit(model = model, path = path)

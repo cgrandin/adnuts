@@ -17,7 +17,8 @@ sample_admb_nuts <- function(path,
                              control = NULL,
                              skip_optimization = TRUE,
                              verbose = TRUE,
-                             admb_args = admb_args){
+                             admb_args = admb_args,
+                             hess_step = FALSE){
 
   control <- .update_control(control)
   eps <- control$stepsize
@@ -36,13 +37,17 @@ sample_admb_nuts <- function(path,
 
   # Build the command to run the model
   if(skip_optimization){
-    cmd <- paste0("cd ", path, " && ", model, " -nox -nohess -maxfn 0 -phase 1000 -nuts -mcmc ", iter)
+    cmd <- paste0("cd ", path, " && ", model, ifelse(hess_step, "", " -nohess"),
+                  " -nox -maxfn 0 -phase 1000 -nuts -mcmc ", iter)
   } else {
     cmd <- paste0("cd ", path ," && ", model, " -hbf -nuts -mcmc ", iter)
   }
   cmd <- paste0(cmd, " -warmup ", warmup, " -chain ", chain)
   if(!is.null(seed)){
     cmd <- paste0(cmd, " -mcseed ", seed)
+  }
+  if(hess_step){
+    cmd <- paste0(cmd, " -hess_step 10 -binp ss.bar -hbf")
   }
   if(!is.null(duration)){
     cmd <- paste0(cmd, " -duration ", duration)
@@ -116,8 +121,8 @@ sample_admb_nuts <- function(path,
      !file.exists(file.path(path, "unbounded.csv"))){
 
     stop(file.path(path, "adaptation.csv"), " exists = ", file.exists(file.path(path, "adaptation.csv")),
-    "\n", file.path(path, "unbounded.csv"), " exists = ", file.exists(file.path(path, "unbounded.csv")),
-    "\nNUTS failed to run in chain ", chain, ". Check inputs.", call. = FALSE)
+         "\n", file.path(path, "unbounded.csv"), " exists = ", file.exists(file.path(path, "unbounded.csv")),
+         "\nNUTS failed to run in chain ", chain, ". Check inputs.", call. = FALSE)
   }
 
   sampler_params <- as.matrix(read.csv(file.path(path, "adaptation.csv")))
@@ -248,6 +253,3 @@ sample_admb_rwm <-
                 time.warmup=time.warmup, warmup=warmup,  model=model,
                 par_names=par_names, cmd=cmd, unbounded=unbounded))
   }
-
-
-
