@@ -211,9 +211,15 @@ sample_admb <- function(model,
   }
 
   if(parallel){
-    plan("multisession", workers = chains)
-    mcmc.out <- future_map(seq_len(chains), function(i)
-      sample_admb_parallel(parallel_number = i,
+    #plan("multisession", workers = chains)
+    snowfall::sfStop()
+    snowfall::sfInit(parallel=TRUE, cpus=chains)
+    if(length(ls(envir=globalenv()))>0)
+      snowfall::sfExportAll()
+    on.exit(snowfall::sfStop())
+    #mcmc.out <- future_map(seq_len(chains), function(i)
+    mcmc.out <- snowfall::sfApply(seq_len(chains), function(i)
+        sample_admb_parallel(parallel_number = i,
                            path = path,
                            model = model,
                            duration=duration,
