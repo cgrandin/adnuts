@@ -172,84 +172,98 @@ sample_admb_nuts <- function(path,
 #' user, instead prefer [sample_rwm()]
 #' @rdname wrappers
 #' @seealso [sample_rwm()]
-sample_admb_rwm <-
-  function(path, model, iter=2000, thin=1, warmup=ceiling(iter/2),
-           init=NULL,  chain=1, seed=NULL, control=NULL,
-           verbose=TRUE, duration=NULL,
-           admb_args=NULL, skip_optimization=TRUE){
+sample_admb_rwm <- function(path,
+                            model,
+                            iter = 2000,
+                            thin = 1,
+                            warmup = ceiling(iter / 2),
+                            init = NULL,
+                            chain = 1,
+                            seed = NULL,
+                            control = NULL,
+                            verbose = TRUE,
+                            duration = NULL,
+                            admb_args = NULL,
+                            skip_optimization = TRUE){
 
-    wd.old <- getwd(); on.exit(setwd(wd.old))
-    setwd(path)
-    ## Only refresh is used by RWM
-    if(any(names(control) !='refresh'))
-      warning("Only refresh control argument is used with RWM, ignoring: ",
-              paste(names(control)[names(control)!='refresh'],
-                    collapse=', '), call.=FALSE)
-    refresh <- control$refresh
-    metric <- 'mle' ## only one allowed
-    stopifnot(iter >= 1)
-    stopifnot(warmup <= iter)
-    stopifnot(duration > 0)
-    stopifnot(thin >=1)
-    if(is.null(warmup)) stop("Must provide warmup")
-    if(thin < 1 | thin > iter) stop("Thin must be >1 and < iter")
-
-    ## Build the command to run the model
-    if(skip_optimization){
-      cmd <- paste(model,"-nox -nohess -maxfn 0 -phase 1000 -rwm -mcmc ",iter)
-    } else {
-      cmd <- paste(model,"-rwm -mcmc ",iter)
-    }
-
-    cmd <- paste(cmd, "-mcscale", warmup, "-chain", chain)
-    if(!is.null(seed)) cmd <- paste(cmd, "-mcseed", seed)
-    if(!is.null(duration)) cmd <- paste(cmd, "-duration", duration)
-    cmd <- paste(cmd, "-mcsave", thin)
-
-    ## Three options for metric. NULL (default) is to use the MLE estimates
-    ## in admodel.cov.  If a matrix is passed, this is written to file and
-    ## no scaling is done. Option 'unit' means identity. Note: these are
-    ## all in unbounded space.
-    if(is.matrix(metric)){
-      ## User defined one will be writen to admodel.cov
-      cor_user <- metric/ sqrt(diag(metric) %o% diag(metric))
-      if(!matrixcalc::is.positive.definite(x=cor_user))
-        stop("Invalid mass matrix, not positive definite")
-      .write.admb.cov(metric)
-    } else if(is.null(metric)){
-      ## NULL means default of MLE
-    } else if(metric=='mle'){
-      ## also use mle (i.e., do nothing)
-    } else if(metric=='unit') {
-      ## Identity in unbounded space
-      cmd <- paste(cmd, "-mcdiag")
-    } else {
-      stop("Invalid metric option")
-    }
-    ## Write the starting values to file. A NULL value means to use the MLE,
-    ## so need to run model
-    if(!is.null(init)){
-      cmd <- paste(cmd, "-mcpin init.pin")
-      write.table(file="init.pin", x=unlist(init), row.names=F, col.names=F)
-    }
-    if(!is.null(admb_args)) cmd <- paste(cmd, admb_args)
-
-    ## Run it and get results
-    time <- system.time(system_(cmd, ignore.stdout=!verbose))[3]
-    if(!file.exists('unbounded.csv'))
-      stop(paste0("RWM failed to run in chain ", chain, ". Check inputs."))
-    unbounded <- as.matrix(read.csv("unbounded.csv", header=FALSE))
-    dimnames(unbounded) <- NULL
-    pars <- .get_psv(model, path)
-    par_names <- names(pars)
-    lp <- as.vector(read.table('rwm_lp.txt', header=TRUE)[,1])
-    pars[,'log-posterior'] <- lp
-    pars <- as.matrix(pars)
-    ## Thinning is done interally for RWM (via -mcsave) so don't need to do
-    ## it here
-    time.total <- time; time.warmup <- NA
-    warmup <- warmup/thin
-    return(list(samples=pars, sampler_params=NULL, time.total=time.total,
-                time.warmup=time.warmup, warmup=warmup,  model=model,
-                par_names=par_names, cmd=cmd, unbounded=unbounded))
+  if(any(names(control) != "refresh")){
+    warning("Only refresh control argument is used with RWM, ignoring: ",
+            paste(names(control)[names(control) != "refresh"], collapse = ", "),
+            call. = FALSE)
   }
+  refresh <- control$refresh
+  metric <- "mle" # only one allowed
+  stopifnot(iter >= 1)
+  stopifnot(warmup <= iter)
+  stopifnot(duration > 0)
+  stopifnot(thin >= 1)
+  if(is.null(warmup)) stop("Must provide warmup")
+  if(thin < 1 | thin > iter) stop("Thin must be > 1 and < iter")
+
+  # Build the command to run the model
+  if(skip_optimization){
+    cmd <- paste0("cd ", path, " && ", model," -nox -nohess -maxfn 0 -phase 1000 -rwm -mcmc ", iter)
+  } else {
+    cmd <- paste0("cd ", path, " && ", model,"-rwm -mcmc ", iter)
+  }
+
+  cmd <- paste0(cmd, " -mcscale ", warmup, " -chain ", chain)
+  if(!is.null(seed)) cmd <- paste0(cmd, " -mcseed ", seed)
+  if(!is.null(duration)) cmd <- paste0(cmd, " -duration ", duration)
+  cmd <- paste0(cmd, " -mcsave ", thin)
+
+  # Three options for metric. NULL (default) is to use the MLE estimates
+  # in admodel.cov.  If a matrix is passed, this is written to file and
+  # no scaling is done. Option 'unit' means identity. Note: these are
+  # all in unbounded space.
+  if(is.matrix(metric)){
+    ## User defined one will be writen to admodel.cov
+    cor_user <- metric / sqrt(diag(metric) %o% diag(metric))
+    if(!matrixcalc::is.positive.definite(x=cor_user))
+      stop("Invalid mass matrix, not positive definite")
+    .write.admb.cov(metric)
+  } else if(is.null(metric)){
+    # NULL means default of MLE
+  } else if(metric == "mle"){
+    # also use mle (i.e., do nothing)
+  } else if(metric == "unit") {
+    # Identity in unbounded space
+    cmd <- paste0(cmd, " -mcdiag")
+  } else {
+    stop("Invalid metric option")
+  }
+  # Write the starting values to file. A NULL value means to use the MLE,
+  # so need to run model
+  if(!is.null(init)){
+    cmd <- paste0(cmd, " -mcpin init.pin")
+    write.table(file = file.path(path, "init.pin"), x = unlist(init), row.names = FALSE, col.names = FALSE)
+  }
+  if(!is.null(admb_args)) cmd <- paste(cmd, admb_args)
+
+  # Run it and get results
+  time <- system_(cmd, ignore.stdout = !verbose)[3]
+  if(!file.exists(file.path(path, "unbounded.csv"))){
+    stop(paste0("RWM failed to run in chain ", chain, ". Check inputs."))
+  }
+  unbounded <- as.matrix(read.csv("unbounded.csv", header = FALSE))
+  dimnames(unbounded) <- NULL
+  pars <- .get_psv(model, path)
+  par_names <- names(pars)
+  lp <- as.vector(read.table(file.path(path, "rwm_lp.txt"), header = TRUE)[,1])
+  pars[, "log-posterior"] <- lp
+  pars <- as.matrix(pars)
+  # Thinning is done internally for RWM (via -mcsave) so don't need to do
+  # it here
+  time.total <- time
+  time.warmup <- NA
+  warmup <- warmup / thin
+  return(list(samples = pars,
+              sampler_params = NULL,
+              time.total = time.total,
+              time.warmup = time.warmup,
+              warmup = warmup,
+              model = model,
+              par_names = par_names,
+              cmd = cmd,
+              unbounded = unbounded))
+}

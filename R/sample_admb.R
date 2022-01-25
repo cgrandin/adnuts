@@ -205,34 +205,29 @@ sample_admb <- function(model,
   }
   # Delete any psv files, adaptation.csv, and unbounded.csv in case something goes wrong we don't use old
   # values by accident
-  files_to_trash <- grep("\\.psv|adaptation\\.csv|unbounded\\.csv", dir(path), value = TRUE)
+  #files_to_trash <- grep("\\.psv|adaptation\\.csv|unbounded\\.csv", dir(path), value = TRUE)
+  files_to_trash <- grep("adaptation\\.csv|unbounded\\.csv", dir(path), value = TRUE)
   if(length(files_to_trash)){
     unlink(file.path(path, files_to_trash))
   }
 
   if(parallel){
-    #plan("multisession", workers = chains)
-    snowfall::sfStop()
-    snowfall::sfInit(parallel=TRUE, cpus=chains)
-    if(length(ls(envir=globalenv()))>0)
-      snowfall::sfExportAll()
-    on.exit(snowfall::sfStop())
-    #mcmc.out <- future_map(seq_len(chains), function(i)
-    mcmc.out <- snowfall::sfApply(seq_len(chains), function(i)
+    plan("multisession", workers = chains)
+    mcmc.out <- future_map(seq_len(chains), function(i)
         sample_admb_parallel(parallel_number = i,
-                           path = path,
-                           model = model,
-                           duration=duration,
-                           algorithm = algorithm,
-                           iter = iter,
-                           init = init[[i]],
-                           warmup = warmup,
-                           seed = seeds[i],
-                           thin = thin,
-                           control = control,
-                           skip_optimization = skip_optimization,
-                           admb_args = admb_args,
-                           hess_step = hess_step))
+                             path = path,
+                             model = model,
+                             duration=duration,
+                             algorithm = algorithm,
+                             iter = iter,
+                             init = init[[i]],
+                             warmup = warmup,
+                             seed = seeds[i],
+                             thin = thin,
+                             control = control,
+                             skip_optimization = skip_optimization,
+                             admb_args = admb_args,
+                             hess_step = hess_step))
     plan()
   }else{
     mcmc.out <- lapply(seq_len(chains), function(i){
@@ -336,4 +331,6 @@ sample_admb <- function(model,
 
   invisible(adfit(result))
 }
+
+
 
