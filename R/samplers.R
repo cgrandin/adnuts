@@ -175,16 +175,17 @@ sample_admb_nuts <- function(path,
 sample_admb_rwm <- function(path,
                             model,
                             iter = 2000,
-                            thin = 1,
-                            warmup = ceiling(iter / 2),
                             init = NULL,
                             chain = 1,
+                            thin = 1,
+                            warmup = ceiling(iter / 2),
                             seed = NULL,
-                            control = NULL,
-                            verbose = TRUE,
                             duration = NULL,
+                            control = NULL,
+                            skip_optimization = TRUE,
+                            verbose = TRUE,
                             admb_args = NULL,
-                            skip_optimization = TRUE){
+                            ...){
 
   if(any(names(control) != "refresh")){
     warning("Only refresh control argument is used with RWM, ignoring: ",
