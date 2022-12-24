@@ -349,6 +349,9 @@ check_identifiable <- function(model, path=getwd()){
 #' @export
 get_psv <- function(model, path){
 
+  if(model == "ss3"){
+    model <- "ss"
+  }
   psv_fn <- file.path(path, paste0(model, ".psv"))
 
   if(file.exists(psv_fn)){
@@ -700,6 +703,10 @@ read_mle_fit <- function(model,
 
   # Sequentially read .par file which contains model size, minimum NLL,
   # and maxgrad at the top
+  if(model == "ss3"){
+    model <- "ss"
+  }
+
   f <- file.path(path, paste0(model, ".par"))
   if(!file.exists(f)){
     warning(f, " not found. Could not read in MLE quantities or parameter names")
@@ -841,7 +848,8 @@ get_model_executable <- function(model, loc_dir = getwd(), path_only = FALSE){
       stop(model, " not found locally or on the PATH.", call. = FALSE)
     }
     if(length(model_path) > 1){
-      warning("The model executable ", model, " was found in more than one place on your PATH.\n",
+      warning("The model executable ", model,
+              " was found in more than one place on your PATH.\n",
               "Using the first one found (", model_path[1], ").")
     }
     found_model_loc <- "path"

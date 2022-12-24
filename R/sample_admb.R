@@ -214,20 +214,20 @@ sample_admb <- function(model,
   if(parallel){
     plan("multisession", workers = chains)
     mcmc.out <- future_map(seq_len(chains), function(i)
-        sample_admb_parallel(parallel_number = i,
-                             path = path,
-                             model = model,
-                             duration=duration,
-                             algorithm = algorithm,
-                             iter = iter,
-                             init = init[[i]],
-                             warmup = warmup,
-                             seed = seeds[i],
-                             thin = thin,
-                             control = control,
-                             skip_optimization = skip_optimization,
-                             admb_args = admb_args,
-                             hess_step = hess_step))
+      sample_admb_parallel(parallel_number = i,
+                           path = path,
+                           model = model,
+                           duration = duration,
+                           algorithm = algorithm,
+                           iter = iter,
+                           init = init[[i]],
+                           warmup = warmup,
+                           seed = seeds[i],
+                           thin = thin,
+                           control = control,
+                           skip_optimization = skip_optimization,
+                           admb_args = admb_args,
+                           hess_step = hess_step))
     plan()
   }else{
     mcmc.out <- lapply(seq_len(chains), function(i){

@@ -243,25 +243,23 @@ sample_admb_rwm <- function(path,
 
   # Run it and get results
   time <- system_(cmd, ignore.stdout = !verbose)[3]
-  if(!file.exists(file.path(path, "unbounded.csv"))){
+  unbounded_fn <- file.path(path, "unbounded.csv")
+  if(!file.exists(unbounded_fn)){
     stop(paste0("RWM failed to run in chain ", chain, ". Check inputs."))
   }
-  unbounded <- as.matrix(read.csv("unbounded.csv", header = FALSE))
+  unbounded <- as.matrix(read.csv(unbounded_fn, header = FALSE))
   dimnames(unbounded) <- NULL
-  pars <- .get_psv(model, path)
+  pars <- get_psv(model, path)
   par_names <- names(pars)
   lp <- as.vector(read.table(file.path(path, "rwm_lp.txt"), header = TRUE)[,1])
   pars[, "log-posterior"] <- lp
   pars <- as.matrix(pars)
   # Thinning is done internally for RWM (via -mcsave) so don't need to do
   # it here
-  time.total <- time
-  time.warmup <- NA
-  warmup <- warmup / thin
   return(list(samples = pars,
               sampler_params = NULL,
-              time.total = time.total,
-              time.warmup = time.warmup,
+              time.total = time,
+              time.warmup = NA,
               warmup = warmup,
               model = model,
               par_names = par_names,
