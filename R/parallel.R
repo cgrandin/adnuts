@@ -15,9 +15,9 @@ sample_admb_parallel <- function(parallel_number,
   # pad the chain number to two digits
   chain_num_char <- as.character(parallel_number)
   nc <- nchar(chain_num_char)
-  chain_num_char <- if(nc == 1,
-                       paste0("0", chain_num_char),
-                       chain_num_char)
+  chain_num_char <- ifelse(nc == 1,
+                           paste0("0", chain_num_char),
+                           chain_num_char)
   chain_dir <- file.path(path, paste0("chain_", chain_num_char))
   if(dir.exists(chain_dir)){
     unlink(chain_dir, recursive = TRUE, force = TRUE)

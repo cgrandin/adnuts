@@ -2,7 +2,7 @@
 #'
 #' A low level function to run a single chain. Unlikely to be used by a
 #' user, instead prefer [sample_nuts()]
-#' @rdname wrappers
+#' @rdname samplers
 #' @param verbose Boolean for whether to print ADMB output to console.
 #' @seealso [sample_nuts()]
 sample_admb_nuts <- function(path,
@@ -18,7 +18,8 @@ sample_admb_nuts <- function(path,
                              skip_optimization = TRUE,
                              verbose = TRUE,
                              admb_args = admb_args,
-                             hess_step = FALSE){
+                             hess_step = FALSE,
+                             fn_logfile = "model_output.log"){
 
   control <- .update_control(control)
   eps <- control$stepsize
@@ -116,20 +117,28 @@ sample_admb_nuts <- function(path,
   }
 
   # Run it and get results
+  if(!is.null(fn_logfile)){
+    cmd <- paste0(cmd, " > ", fn_logfile, " 2>&1")
+  }
+
   time <- system.time(system_(cmd, ignore.stdout = !verbose))[3]
   if(!file.exists(file.path(path, "adaptation.csv")) ||
      !file.exists(file.path(path, "unbounded.csv"))){
 
-    stop(file.path(path, "adaptation.csv"), " exists = ", file.exists(file.path(path, "adaptation.csv")),
-         "\n", file.path(path, "unbounded.csv"), " exists = ", file.exists(file.path(path, "unbounded.csv")),
-         "\nNUTS failed to run in chain ", chain, ". Check inputs.", call. = FALSE)
+    stop(file.path(path, "adaptation.csv"), " exists = ",
+         file.exists(file.path(path, "adaptation.csv")),
+         "\n", file.path(path, "unbounded.csv"), " exists = ",
+         file.exists(file.path(path, "unbounded.csv")),
+         "\nNUTS failed to run in chain ", chain,
+         call. = FALSE)
   }
 
   sampler_params <- as.matrix(read.csv(file.path(path, "adaptation.csv")))
-  unbounded <- as.matrix(read.csv(file.path(path, "unbounded.csv"), header = FALSE))
+  unbounded <- as.matrix(read.csv(file.path(path, "unbounded.csv"),
+                                  header = FALSE))
   dimnames(unbounded) <- NULL
 
-  pars <- get_psv(model, path)
+  pars <- read_psv(path, model)
 
   par_names <- names(pars)
   if(!"lp__" %in% dimnames(sampler_params)[[2]]){
@@ -170,7 +179,7 @@ sample_admb_nuts <- function(path,
 #'
 #' A low level function to run a single chain. Unlikely to be used by a
 #' user, instead prefer [sample_rwm()]
-#' @rdname wrappers
+#' @rdname samplers
 #' @seealso [sample_rwm()]
 sample_admb_rwm <- function(path,
                             model,
@@ -185,6 +194,7 @@ sample_admb_rwm <- function(path,
                             skip_optimization = TRUE,
                             verbose = TRUE,
                             admb_args = NULL,
+                            fn_logfile = "model_output.log",
                             ...){
 
   if(any(names(control) != "refresh")){
@@ -220,7 +230,7 @@ sample_admb_rwm <- function(path,
   if(is.matrix(metric)){
     ## User defined one will be writen to admodel.cov
     cor_user <- metric / sqrt(diag(metric) %o% diag(metric))
-    if(!matrixcalc::is.positive.definite(x=cor_user))
+    if(!is.positive.definite(x=cor_user))
       stop("Invalid mass matrix, not positive definite")
     .write.admb.cov(metric)
   } else if(is.null(metric)){
@@ -233,7 +243,7 @@ sample_admb_rwm <- function(path,
   } else {
     stop("Invalid metric option")
   }
-  # Write the starting values to file. A NULL value means to use the MLE,
+  # Write the starting values to file. A `NULL` value means to use the MLE,
   # so need to run model
   if(!is.null(init)){
     cmd <- paste0(cmd, " -mcpin init.pin")
@@ -242,6 +252,10 @@ sample_admb_rwm <- function(path,
   if(!is.null(admb_args)) cmd <- paste(cmd, admb_args)
 
   # Run it and get results
+  if(!is.null(fn_logfile)){
+    cmd <- paste0(cmd, " > ", fn_logfile, " 2>&1")
+  }
+
   time <- system_(cmd, ignore.stdout = !verbose)[3]
   unbounded_fn <- file.path(path, "unbounded.csv")
   if(!file.exists(unbounded_fn)){
@@ -249,20 +263,21 @@ sample_admb_rwm <- function(path,
   }
   unbounded <- as.matrix(read.csv(unbounded_fn, header = FALSE))
   dimnames(unbounded) <- NULL
-  pars <- get_psv(model, path)
+  pars <- read_psv(path, model)
   par_names <- names(pars)
+
   lp <- as.vector(read.table(file.path(path, "rwm_lp.txt"), header = TRUE)[,1])
   pars[, "log-posterior"] <- lp
   pars <- as.matrix(pars)
   # Thinning is done internally for RWM (via -mcsave) so don't need to do
   # it here
-  return(list(samples = pars,
-              sampler_params = NULL,
-              time.total = time,
-              time.warmup = NA,
-              warmup = warmup,
-              model = model,
-              par_names = par_names,
-              cmd = cmd,
-              unbounded = unbounded))
+  list(samples = pars,
+       sampler_params = NULL,
+       time.total = time,
+       time.warmup = NA,
+       warmup = warmup,
+       model = model,
+       par_names = par_names,
+       cmd = cmd,
+       unbounded = unbounded)
 }

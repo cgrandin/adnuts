@@ -36,9 +36,8 @@
 #'   recommended to initialize multiple chains from dispersed
 #'   points. A of NULL signifies to use the starting values
 #'   present in the model (i.e., `obj$par`) for all chains.
-#' @param chains The number of chains to run
-#' @param parallel If `TRUE`, run all chains in parallel, 1 CPU for
-#' each chain. If `FALSE` run all chains sequentially on one CPU
+#' @param chains The number of chains to run. If greater than 1,
+#' use parallel execution (1 core per chain)
 #' @param warmup The number of warm up iterations.
 #' @param seeds A vector of seeds, one for each chain.
 #' @param thin The thinning rate to apply to samples. Typically
@@ -120,16 +119,19 @@
 #' setwd(oldwd)
 #' }
 #'
-#' @name wrappers
+#' @name samplers
 NULL
 
 #' Sampling from ADMB models
 #'
-#' @rdname wrappers
+#' @rdname samplers
 #' @param algorithm The algorithm to use, one of "NUTS" or "RWM"
-#' @export
+#' @param fn_logfile The name of a file to output `stdout` from `system()`
+#' calls to. If `NULL`, `stdout` will be printed to the screen
 #' @importFrom furrr future_map
 #' @importFrom future plan
+#' @importFrom parallel detectCores
+#' @export
 sample_admb <- function(model,
                         path = NULL,
                         iter = 2000,
@@ -147,13 +149,13 @@ sample_admb <- function(model,
                         skip_unbounded = TRUE,
                         admb_args = NULL,
                         hess_step = FALSE,
-                        parallel = TRUE){
+                        fn_logfile = "model_output.log"){
 
   if(is.null(path)){
     stop("You must supply a path which contains the model files", call. = FALSE)
   }
-  cores_avail  <- parallel::detectCores()
-  if(parallel && chains > cores_avail) {
+  cores_avail  <- detectCores()
+  if(chains > cores_avail) {
     chains <- cores_avail - 1
     warning(paste0("Specified number of chains greater than number ",
                    "of available cores, using number of available cores - 1 = ", chains))
@@ -173,17 +175,17 @@ sample_admb <- function(model,
 
   model <- get_model_executable(model, path)
 
-  v <- .check_ADMB_version(model = model,
-                           path = path,
-                           warn = (algorithm == "NUTS"))
-  if(v <= 12.0 && !skip_unbounded){
-    warning(paste0("Version ", v, " of ADMB is incompatible with skip_unbounded = FALSE, ignoring"))
+  v <- check_admb_version(exe = model)
+
+  if(as.numeric(v) <= 12.0 && !skip_unbounded){
+    warning(paste0("Version ", v, " of ADMB is incompatible with ",
+                   "`skip_unbounded` = `FALSE`, ignoring"))
     skip_unbounded <- TRUE
   }
   # Update control with defaults
   if(is.null(warmup)){
     warmup <- floor(iter / 2)
-    message("warning is NULL, setting to floor(iter / 2) = ", warmup)
+    message("`warmup` is `NULL`, setting to `floor(iter / 2)` = ", warmup)
   }
   if(!(algorithm %in% c("NUTS", "RWM"))){
     stop("Invalid algorithm specified",
@@ -192,117 +194,134 @@ sample_admb <- function(model,
   if(algorithm == "NUTS")
     control <- .update_control(control)
   if(is.null(init)){
-    warning("Using MLE inits for each chain -- strongly recommended to use dispersed inits")
+    warning("Using MLE inits for each chain. It is strongly recommended ",
+            "that you use dispersed inits")
   }else if(is.function(init)){
-    init <- lapply(1:chains, function(x) init())
+    init <- map(seq_len(chains), ~{init()})
   }else if(!is.list(init)){
-    stop("init must be NULL, a list, or a function",
+    stop("`init` must be `NULL`, a list, or a function",
          call. = FALSE)
   }
   if(!is.null(init) && length(init) != chains){
-    stop("Length of init does not equal number of chains",
+    stop("Length of `init` does not equal number of chains",
          call. = FALSE)
   }
-  # Delete any psv files, adaptation.csv, and unbounded.csv in case something goes wrong we don't use old
-  # values by accident
-  #files_to_trash <- grep("\\.psv|adaptation\\.csv|unbounded\\.csv", dir(path), value = TRUE)
-  files_to_trash <- grep("adaptation\\.csv|unbounded\\.csv", dir(path), value = TRUE)
-  if(length(files_to_trash)){
-    unlink(file.path(path, files_to_trash))
+  # Delete any psv files, adaptation.csv, and unbounded.csv in case something
+  # goes wrong we don't use old values by accident
+  files_to_remove <- grep("adaptation\\.csv|unbounded\\.csv", dir(path), value = TRUE)
+  if(length(files_to_remove)){
+    unlink(file.path(path, files_to_remove))
   }
 
-  if(parallel){
+  map_func <- `if`(chains > 1, future_map, map)
+
+  if(chains > 1){
     plan("multisession", workers = chains)
-    mcmc.out <- future_map(seq_len(chains), function(i)
-      sample_admb_parallel(parallel_number = i,
-                           path = path,
-                           model = model,
-                           duration = duration,
-                           algorithm = algorithm,
-                           iter = iter,
-                           init = init[[i]],
-                           warmup = warmup,
-                           seed = seeds[i],
-                           thin = thin,
-                           control = control,
-                           skip_optimization = skip_optimization,
-                           admb_args = admb_args,
-                           hess_step = hess_step))
-    plan()
-  }else{
-    mcmc.out <- lapply(seq_len(chains), function(i){
-      sample_admb_parallel(parallel_number = i,
-                           path = path,
-                           model = model,
-                           duration = duration,
-                           algorithm = algorithm,
-                           iter = iter,
-                           init = init[[i]],
-                           warmup = warmup,
-                           seed = seeds[i],
-                           thin = thin,
-                           control = control,
-                           skip_optimization = skip_optimization,
-                           admb_args = admb_args,
-                           hess_step = hess_step)})
   }
-  warmup <- mcmc.out[[1]]$warmup
+  mcmc_out <- map_func(seq_len(chains), function(i)
+    sample_admb_parallel(parallel_number = i,
+                         path = path,
+                         model = model,
+                         duration = duration,
+                         algorithm = algorithm,
+                         iter = iter,
+                         init = init[[i]],
+                         warmup = warmup,
+                         seed = seeds[i],
+                         thin = thin,
+                         control = control,
+                         skip_optimization = skip_optimization,
+                         admb_args = admb_args,
+                         hess_step = hess_step,
+                         fn_logfile = fn_logfile))
+  if(chains > 1){
+    plan()
+  }
+
+  warmup <- mcmc_out[[1]]$warmup
   mle <- read_mle_fit(model = model, path = path)
 
   if(is.null(mle)){
-    par.names <- dimnames(mcmc.out[[1]]$samples)[[2]]
-    par.names <- par.names[-length(par.names)]
+    par_names <- dimnames(mcmc_out[[1]]$samples)[[2]]
+    par_names <- par_names[-length(par_names)]
   }else{
-    par.names <- mle$par.names
+    par_names <- mle$par.names
   }
-  iters <- unlist(lapply(mcmc.out, function(x) dim(x$samples)[1]))
+  iters <- map_dbl(mcmc_out, ~{dim(.x$samples)[1]})
   if(any(iters != iter / thin)){
-    N <- min(iters)
-    warning(paste0("Variable chain lengths, truncating to minimum = ", N))
+    chain_length <- min(iters)
+    warning("Variable chain lengths, truncating to minimum = ", chain_length)
   }else{
-    N <- iter / thin
+    chain_length <- iter / thin
   }
-  samples <- array(NA, dim = c(N, chains, 1 + length(par.names)),
-                   dimnames = list(NULL, NULL, c(par.names, "lp__")))
+
+  samples <- array(NA, dim = c(chain_length, chains, 1 + length(par_names)),
+                   dimnames = list(NULL, NULL, c(par_names, "lp__")))
 
   if(skip_unbounded){
     samples_unbounded <- NULL
   }else{
     samples_unbounded <- samples
   }
-  for(i in 1:chains){
-    samples[, i, ] <- mcmc.out[[i]]$samples[1:N, ]
+
+  for(i in seq_len(chains)){
+    samples[, i, ] <- mcmc_out[[i]]$samples[seq_len(chain_length), ]
     if(!skip_unbounded)
-      samples_unbounded[, i, ] <- cbind(mcmc.out[[i]]$unbounded[1:N, ],
-                                        mcmc.out[[i]]$samples[, 1 + length(par.names)])
+      samples_unbounded[, i, ] <-
+        cbind(mcmc_out[[i]]$unbounded[seq_len(chain_length), ],
+              mcmc_out[[i]]$samples[, 1 + length(par_names)])
   }
+  sampler_params <- NULL
   if(algorithm == "NUTS"){
-    sampler_params <- lapply(mcmc.out, function(x) x$sampler_params[1:N, ])
-  }else{
-    sampler_params <- NULL
+    sampler_params <- map(mcmc_out, ~{
+      .x$sampler_params[seq_len(chain_length), ]
+    })
   }
-  time_warmup <- unlist(lapply(mcmc.out, function(x) as.numeric(x$time.warmup)))
-  time_total <- unlist(lapply(mcmc.out, function(x) as.numeric(x$time.total)))
-  cmd <- unlist(lapply(mcmc.out, function(x) x$cmd))
-  if(N < warmup){
+  time_warmup <- map_dbl(mcmc_out, ~{
+    if(is.null(.x$time.warmup)){
+      return(NA_real_)
+    }
+    .x$time.warmup
+  })
+  time_total <- map_dbl(mcmc_out, ~{
+    if(is.null(.x$time.total)){
+      return(NA_real_)
+    }
+    .x$time.total
+  })
+  cmd <- map_chr(mcmc_out, ~{.x$cmd})
+  if(chain_length < warmup){
     warning("Duration too short to finish warmup period")
   }
   # When running multiple chains the psv files will either be overwritten
-  # or in different folders (if parallel is used). Thus mceval needs to be
-  # done posthoc by recombining chains AFTER thinning and warmup and
-  # discarded into a single chain, written to file, then call -mceval.
-  # Merge all chains together and run mceval
+  # or in different folders if processed in parallel. Thus mceval needs to be
+  # run after recombining chains
   message("Merging post-warmup chains into main folder: ", path)
-  samples2 <- do.call(rbind, lapply(1:chains, function(i)
-    samples[-(1:warmup), i, -dim(samples)[3]]))
-  write_psv(fn = model, samples = samples2, path = path)
-  # These already exclude warmup
-  unbounded <- do.call(rbind, lapply(mcmc.out, function(x) x$unbounded))
-  write.table(unbounded, file = file.path(path, "unbounded.csv"), sep = ",", col.names = FALSE, row.names = FALSE)
+  sa <- map(seq_len(chains), ~{
+    samples[-seq_len(warmup), .x, -dim(samples)[3]]
+  }) %>%
+    do.call(rbind, .)
+  write_psv(path = path,
+            fn_psv = model,
+            samples = sa)
+
+  unbounded <- map(mcmc_out, ~{
+    .x$unbounded
+  }) %>%
+    do.call(rbind, .)
+  write.csv(unbounded,
+            file.path(path, "unbounded.csv"),
+            row.names = FALSE)
+
   if(mceval){
     message("Running -mceval on merged chains")
-    system_(paste0("cd ", path, " && ", model, " -mceval"), ignore.stdout = FALSE)
+    mceval_cmd <- paste0("cd ", path, " && ", model, " -mceval")
+    if(!is.null(fn_logfile)){
+      mceval_cmd <- paste0(mceval_cmd, " > ", fn_logfile, " 2>&1")
+    }
+    system_(mceval_cmd, ignore.stdout = FALSE)
   }
+
   covar_est <- cov(unbounded)
   if(skip_monitor){
     message("Skipping ESS and Rhat statistics")
@@ -322,7 +341,7 @@ sample_admb <- function(model,
                  algorithm = algorithm,
                  warmup = warmup,
                  model = model,
-                 max_treedepth = mcmc.out[[1]]$max_treedepth,
+                 max_treedepth = mcmc_out[[1]]$max_treedepth,
                  cmd = cmd,
                  init = init,
                  covar_est = covar_est,
@@ -331,6 +350,3 @@ sample_admb <- function(model,
 
   invisible(adfit(result))
 }
-
-
-

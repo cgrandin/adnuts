@@ -68,7 +68,7 @@ pairs_admb <- function(fit,
                        unbounded = FALSE,
                        ...){
 
-  if(!is.adfit(fit))
+  if(!is_adfit(fit))
     stop("Argument 'fit' is not a valid object returned by 'sample_admb'")
   if(unbounded | !add.mle){
     mle <- NULL

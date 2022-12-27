@@ -1,77 +1,3 @@
-#' Constructor for the "adfit" (A-D fit) class
-#' @param x Fitted object from [sample_admb()]
-#' @return An object of class "adfit"
-#' @export
-adfit <- function(x){
-  stopifnot(is.list(x))
-  if(is.null(x$samples)) stop("Samples missing from fit", call. = FALSE)
-  if(is.null(x$algorithm)) stop("Algorithm missing from fit", call. = FALSE)
-  class(x) <- "adfit"
-  x
-}
-
-#' Check object of class adfit
-#' @param x Returned list from [sample_admb()]
-#' @export
-is.adfit <- function(x) inherits(x, "adfit")
-
-#' Plot object of class adfit
-#' @param x Fitted object from [sample_admb()]
-#' @param y Ignored
-#' @param ... Ignored
-#' @return Plot created
-#' @method plot adfit
-#' @export
-plot.adfit <- function(x, y, ...) plot_marginals(x)
-
-#' Print summary of object of class adfit
-#' @param object Fitted object from [sample_admb()]
-#' @param ... Ignored
-#' @return Summary printed to screen
-#' @method summary adfit
-#' @export
-summary.adfit <- function(object, ...) print(object)
-
-#' Print summary of adfit object
-#' @param x Fitted object from [sample_admb()]
-#' @param ... Ignored
-#' @return Summary printed to console
-#' @method print adfit
-#' @export
-print.adfit <- function(x, ...){
-  iter <- dim(x$samples)[1]
-  chains <- dim(x$samples)[2]
-  pars <- dim(x$samples)[3]
-  samples <- (iter-x$warmup)*chains
-  cat(paste0("Model '", x$model,"'"), "has", pars,
-      "pars, and was fit using", x$algorithm,
-      "with", iter, "iter and", chains,
-      "chains\n")
-  rt <- sum(x$time.total)/chains
-  ru <- 'seconds'
-  if(rt>60){
-    rt <- rt/60; ru <- 'minutes'
-  } else if(rt>60*60) {
-    rt <- rt/(60*60); ru <- 'hours'
-  }
-  cat("Average run time per chain was", round(rt,2),  ru, '\n')
-  if(!is.null(x$monitor)){
-    minESS <- min(x$monitor$n_eff)
-    maxRhat <- round(max(x$monitor$Rhat),3)
-    cat(paste0("Minimum ESS=",
-                   minESS,
-                   " (",
-                   round(100*minESS/samples,2),
-                   "%), and maximum Rhat=", maxRhat, '\n'))
-  }
-  if(x$algorithm=='NUTS'){
-    ndivs <- sum(extract_sampler_params(x)[,'divergent__'])
-    cat(paste0("There were ", ndivs, " divergences after warmup\n"))
-  }
-}
-
-
-
 #' Plot marginal distributions for a fitted model
 #'
 #' @param fit A fitted object returned by
@@ -110,7 +36,7 @@ print.adfit <- function(x, ...){
 plot_marginals <- function(fit, pars=NULL, mfrow=NULL,
                            add.mle=TRUE, add.monitor=TRUE,
                            breaks=30){
-  if(!is.adfit(fit)) stop("fit is not a valid object")
+  if(!is_adfit(fit)) stop("fit is not a valid object")
   if(!is.null(mfrow)) stopifnot(is.vector(mfrow) && length(mfrow)==2)
   stopifnot(add.mle %in% c(TRUE,FALSE))
   if(add.mle & is.null(fit$mle)) {
@@ -220,53 +146,6 @@ plot_sampler_params <- function(fit, plot=TRUE){
   invisible(g)
 }
 
-#' Check that the  model is compiled with the right version
-#' of ADMB which is 12.0 or later
-#'
-#' @param model Model name without file extension
-#' @param path Path to model folder, defaults to working
-#'   directory. NULL value specifies working directory (default).
-#' @param min.version Minimum valid version (numeric). Defaults
-#'   to 12.0.
-#' @param warn Boolean whether to throw warnings or not
-#' @return Nothing, errors out if either model could not be run
-#'   or the version is incompatible. If compatible nothing
-#'   happens.
-#' @details Some functionality of packages [adnuts] is
-#'   embedded in the ADMB source code so that when a model is
-#'   compiled it is contained in the model executable. If this
-#'   code does not exist [adnuts] will fail. The solution is to
-#'   update ADMB and recompile the model.
-.check_ADMB_version <- function(model, path=getwd(),
-                                min.version=12, warn=TRUE){
-  if(!is.null(path)){
-    if(dir.exists(path)){
-    wd <- getwd()
-    on.exit(setwd(wd))
-    setwd(path)
-    } else {
-      stop("Invalid path, folder does not exist")
-    }
-  }
-  ## Run the model to get the version info
-  test <- try(system(paste(model, '-version'), intern=TRUE), silent=TRUE)
-  if (inherits(test,"try-error"))
-    stop(paste0("Could not detect version of ", model, ". Check executable and path"))
-  ## v <- as.numeric(gsub('ADMB-', '', strsplit(test[3], ' ')[[1]][1]))
-  v <- as.numeric(gsub('ADMB-', '', substr(strsplit(test[3], ' ')[[1]][1], 1,9)))
-  if(is.na(v) | !is.numeric(v)){
-    warning("Issue verifying ADMB version. Contact package mantainer")
-    return(0)
-  }
-  if(v < min.version)
-    stop(paste(model,"compiled with old version of ADMB. Version >12.0 required, found:\n", v,
-               "\nadnuts is incompatible with this version. Update ADMB and try again"))
-  if(v < 12.2 & warn){
-    warning("This version contains bugs in the NUTS code. Consider updating ADMB to version at least 12.2")
-  }
-  return(invisible(v))
-}
-
 #' Function to generate random initial values from a previous fit using
 #' adnuts
 #'
@@ -280,88 +159,6 @@ sample_inits <- function(fit, chains){
   post <- extract_samples(fit)
   ind <- sample(1:nrow(post), size=chains)
   lapply(ind, function(i) as.numeric(post[i,]))
-}
-
-#' Read in admodel.hes file
-#' @param path Path to folder containing the admodel.hes file
-#'
-#' @return The Hessian matrix
-.getADMBHessian <- function(path){
-  ## This function reads in all of the information contained in the
-  ## admodel.hes file. Some of this is needed for relaxing the
-  ## covariance matrix, and others just need to be recorded and
-  ## rewritten to file so ADMB "sees" what it's expecting.
-  filename <- file.path(path, "admodel.hes")
-  if(!file.exists(filename))
-    stop(paste0("admodel.hes not found: ", filename))
-  f <- file(filename, "rb")
-  on.exit(close(f))
-  num.pars <- readBin(f, "integer", 1)
-  hes.vec <- readBin(f, "numeric", num.pars^2)
-  hes <- matrix(hes.vec, ncol=num.pars, nrow=num.pars)
-  hybrid_bounded_flag <- readBin(f, "integer", 1)
-  scale <- readBin(f, "numeric", num.pars)
-  return(hes)
-}
-
-#' Check identifiability from model Hessian
-#'
-#' @param path Path to model folder, defaults to working directory
-#' @param model Model name without file extension
-#' @details Read in the admodel.hes file and check the eigenvalues to
-#'   determine which parameters are not identifiable and thus cause the
-#'   Hessian to be non-invertible. Use this to identify which parameters
-#'   are problematic. This function was converted from a version in the
-#'   [FishStatsUtils] package.
-#' @return Prints output of bad parameters and invisibly returns it.
-#' @export
-check_identifiable <- function(model, path=getwd()){
-  ## Check eigendecomposition
-  fit <- .read_mle_fit(model, path)
-  hes <- .getADMBHessian(path)
-  ev  <-  eigen(hes)
-  WhichBad <-  which( ev$values < sqrt(.Machine$double.eps) )
-  if(length(WhichBad)==0){
-    message( "All parameters are identifiable" )
-  } else {
-    ## Check for parameters
-    if(length(WhichBad==1)){
-      RowMax <- abs(ev$vectors[,WhichBad])
-    } else {
-      RowMax  <-  apply(ev$vectors[, WhichBad], MARGIN=1, FUN=function(vec){max(abs(vec))} )
-    }
-    bad <- data.frame(ParNum=1:nrow(hes), Param=fit$par.names,
-                      MLE=fit$est[1:nrow(hes)],
-                      Param_check=ifelse(RowMax>0.1, "Bad","OK"))
-    row.names(bad) <- NULL
-    bad <- bad[bad$Param_check=='Bad',]
-    print(bad)
-    return(invisible(bad))
-  }
-}
-
-#' Read in PSV file
-#'
-#' @param model The name of the executable (may have a prepended ./)
-#' @param path The path in which the PSV file is located
-#'
-#' @return The contents of the PSV file as read in by [R2admb::read_psv()]
-#' @export
-get_psv <- function(model, path){
-
-  if(model == "ss3"){
-    model <- "ss"
-  }
-  psv_fn <- file.path(path, paste0(model, ".psv"))
-
-  if(file.exists(psv_fn)){
-    pars <- read_psv(psv_fn)
-  }else{
-    stop(psv_fn, " not found.",
-         call. = FALSE)
-  }
-
-  pars
 }
 
 #' Update algorithm for mass matrix.
@@ -504,69 +301,6 @@ launch_shinyadmb <- function(fit){
   shinystan::launch_shinystan(.as.shinyadnuts(fit))
 }
 
-
-#' Extract posterior samples from a model fit.
-#'
-#' A helper function to extract posterior samples across multiple chains
-#' into a single data.frame.
-#'
-#' @details This function is loosely based on the function
-#' [rstan::extract()]. Merging samples across chains should only be used for
-#' inference after appropriate diagnostic checks. Do not calculate
-#' diagnostics like Rhat or effective sample size after using this
-#' function, instead, use [rstan::monitor()]. Likewise, `warmup`
-#' samples are not valid and should never be used for inference, but may
-#' be useful in some cases for diagnosing issues.
-#'
-#' @param fit A list returned by [sample_admb()]
-#' @param inc_warmup Whether to extract the warmup samples or not
-#' (default). `warmup` samples should never be used for inference, but may
-#' be useful for diagnostics.
-#' @param inc_lp Whether to include a column for the log posterior density
-#' (last column). For diagnostics it can be useful.
-#' @param as.list Whether to return the samples as a list (one element per
-#' chain). This could then be converted to a [coda::mcmc()] object.
-#' @param unbounded Boolean flag whether to return samples in
-#' unbounded (untransformed) space. Will only be differences
-#' when init_bounded types are used in the ADMB template. This
-#' can be useful for model debugging.
-#' @return If as.list is FALSE, an invisible data.frame containing samples
-#' (rows) of each parameter (columns). If multiple chains exist they will
-#' be [rbind()]ed together, maintaining order within each chain. If as.list
-#' is `TRUE`, samples are returned as a list of matrices.
-#' @export
-#' @examples
-#' # A previously run fitted ADMB model
-#' fit <- readRDS(system.file('examples', 'fit.RDS', package='adnuts'))
-#' post <- extract_samples(fit)
-#' tail(apply(post, 2, median))
-extract_samples <- function(fit, inc_warmup=FALSE, inc_lp=FALSE,
-                            as.list=FALSE, unbounded=FALSE){
-  if(!is.adfit(fit)) stop("fit is not a valid object")
-  if(unbounded){
-    x <- fit$samples_unbounded
-    if(is.null(x))
-      stop("No unbounded parameters in this fit")
-  } else {
-    x <- fit$samples
-    if(is.null(x)) stop("No posterior samples found")
-  }
-  if(!is.array(x)) stop("fit$samples is not an array -- valid fit object?")
-  ind <- if(inc_warmup) 1:dim(x)[1] else -(1:fit$warmup)
-  ## Drop LP
-  if(inc_lp){
-    y <-  lapply(1:dim(x)[2], function(i) x[ind, i,])
-  } else {
-    y <-  lapply(1:dim(x)[2], function(i) x[ind, i, -dim(x)[3]])
-  }
-  if(as.list){
-    return(invisible(y))
-  } else {
-    return(invisible(as.data.frame(do.call(rbind, y))))
-  }
-}
-
-
 #' Extract sampler parameters from a fit.
 #'
 #' Extract information about NUTS trajectories, such as acceptance ratio
@@ -624,69 +358,6 @@ write_psv <- function(fn,
   on.exit(close(con), add = TRUE)
   writeBin(object = ncol(samples), con = con)
   writeBin(object = as.vector(t(samples)), con = con)
-}
-
-#' Read in the ADMB covariance file.
-#'
-#' @param path Path to model
-#' @export
-get_admb_cov <- function(path = NULL){
-
-  out <- list()
-  cov_file <- file.path(path, "admodel.cov")
-  cov_file_bin <- file(cov_file, "rb")
-  on.exit(close(cov_file_bin), add = TRUE)
-  out$num_pars <- readBin(cov_file_bin, "integer", 1)
-  cov_vec <- readBin(cov_file_bin, "numeric", out$num_pars ^ 2)
-  out$cov_unbounded <- matrix(cov_vec, ncol = out$num_pars, nrow = out$num_pars)
-  out$hybrid_bounded_flag <- readBin(cov_file_bin, "integer", 1)
-  out$scale <- readBin(cov_file_bin, "numeric", out$num_pars)
-  out$cov_bounded <- out$cov_unbounded * (out$scale %o% out$scale)
-
-  out
-}
-
-#' Write a covariance matrix to admodel.cov.
-#'
-#' @param cov_unbounded The cov matrix in unbounded space
-#' @param hbf The hybrid_bounded_flag value. Use `hbf = 1` for HMC.
-#' @param model_path Path to model.
-#' @export
-write_admb_cov <- function(cov_unbounded,
-                           path = NULL,
-                           hbf = NULL){
-
-  cov_file <- file.path(path, "admodel.cov")
-  cov_bck_file <- file.path(path, "admodel_original.cov")
-  if(!file.exists(cov_file)){
-    stop(cov_file, "does not exist", call. = FALSE)
-  }
-  # Create backup of the covariance file
-  file.copy(from = cov_file,
-            to = cov_bck_file,
-            overwrite = TRUE)
-
-  # Read in the output files
-  results <- get_admb_cov(path)
-
-  if(is.null(hbf)){
-    hbf <- results$hybrid_bounded_flag
-  }
-  scale <- results$scale
-  num_pars <- results$num_pars
-  if(NROW(cov_unbounded) != num_pars)
-    stop("Invalid size of covariance matrix, should be: ", num_pars,
-         "instead of ", NROW(cov_unbounded) ,". Try re-running the model",
-         call. = FALSE)
-
-  # Write it to file using original scales, although these are ignored.
-  cov_file_bin <- file(cov_file, "wb")
-  on.exit(close(cov_file_bin))
-  writeBin(as.integer(num_pars), con = cov_file_bin)
-  writeBin(as.vector(as.numeric(cov_unbounded)), con = cov_file_bin)
-  writeBin(as.integer(hbf), con = cov_file_bin)
-  writeBin(as.vector(scale), con = cov_file_bin)
-
 }
 
 #' Read maximum likelihood fit for ADMB model
@@ -765,63 +436,57 @@ read_mle_fit <- function(model,
        cor = cor[1:nopar, 1:nopar])
 }
 
-#' Return the Operating System name in lower case
-#'
-#' @return A character string describing the OS, e.g. 'windows', 'linux', or 'osx'
-#' @export
-get_os <- function(){
-  sysinf <- Sys.info()
-  if(!is.null(sysinf)){
-    os <- sysinf["sysname"]
-    if(os == "Darwin")
-      os <- "osx"
-  } else { ## mystery machine
-    os <- .Platform$OS.type
-    if (grepl("^darwin", R.version$os))
-      os <- "osx"
-    if (grepl("linux-gnu", R.version$os))
-      os <- "linux"
-  }
-  tolower(os)
-}
-
 #' Find the model executable name on your filesystem
 #'
 #' @description
-#' Find the model executable name in the local directory (`loc_dir`). If not there, search the PATH.
-#' If found more than once in the PATH, the first one will be used and a warning issued.
+#' Find the model executable name in the local directory (`loc_dir`).
+#' If not there, search the PATH.
+#' If found more than once in the PATH, the first one will be used and a
+#' warning issued.
 #' If not on the PATH, throw an error and stop code execution.
-#' If using Linux or OSX and the file permissions do not allow the user to execute,
-#' throw an error and stop code execution.
+#' If using Linux or OSX and the file permissions do not allow the user to
+#' execute, throw an error and stop code execution.
 #'
 #' @param model The name of the executable (without any extension)
-#' @param loc_dir The path to check for existence of the executable before checking the path
+#' @param loc_dir The path to check for existence of the executable before
+#' checking the path
 #' @param path_only If `TRUE`, ignore `loc_dir` and search the PATH only
 #'
-#' @return The executable as it should be called in the OS. It is either just as it was given if on the PATH
-#' or in the `loc_dir` directory on a Windows machine, or prepended with './' if in the `loc_dir` directory on a
-#' non-Windows machine. If not found anywhere, an error will be thrown and code execution will stop
+#' @return The executable as it should be called in the OS. It is either
+#' just as it was given if on the PATH or in the `loc_dir` directory on a
+#' Windows machine, or prepended with './' if in the `loc_dir` directory on a
+#' non-Windows machine. If not found anywhere, an error will be thrown and
+#' code execution will stop
 #' @export
-get_model_executable <- function(model, loc_dir = getwd(), path_only = FALSE){
+get_model_executable <- function(model,
+                                 loc_dir = getwd(),
+                                 path_only = FALSE){
 
   stopifnot(is.character(loc_dir))
   stopifnot(is.character(model))
 
   if(!path_only && !dir.exists(loc_dir)){
-    stop(paste0("Directory ", loc_dir, " does not exist. Check argument 'loc_dir'"),
+    stop("Directory `", loc_dir, "` does not exist. Check ",
+         "argument `loc_dir`",
          call. = FALSE)
   }
 
   check_dot <- grep("\\.", model)
   if(length(check_dot)){
-    stop("model name cannot include a '.', Do not include extension in model name", call. = FALSE)
+    stop("model name cannot include a '.', Do not include extension in ",
+         "model name",
+         call. = FALSE)
   }
 
   os <- get_os()
-  wch <- ifelse(os == "windows", "where", "which")
   loc_dir_files <- dir(loc_dir)
   model_regex <- gsub("\\+", "\\\\+", model)
-  model_name <- grep(paste0("^", model_regex, ifelse(os == "windows", ".exe", ""), "$"), loc_dir_files, value = TRUE)
+  model_name <- grep(paste0("^",
+                            model_regex,
+                            ifelse(os == "windows", ".exe", ""), "$"),
+                     loc_dir_files,
+                     value = TRUE)
+
   if(!path_only && length(model_name)){
     if(os != "windows"){
       model <- paste0("./", model)
@@ -829,18 +494,8 @@ get_model_executable <- function(model, loc_dir = getwd(), path_only = FALSE){
     found_model_loc <- "loc_dir"
   }else{
     # No local executable, check PATH for one by using which or where
-
-    # Check that which or where are installed on the OS
-    tryCatch(system(wch, intern = TRUE),
-             warning = function(w){},
-             error = function(e){
-               stop("The '", wch, "' command was not found on your OS and is necessary ",
-                    "to search the PATH for your model executable.\n",
-                    "Install it and try again or place executable in the local directory.",
-                    call. = FALSE)
-             })
-
-    model_path <- tryCatch(system(paste(wch, model), intern = TRUE),
+    model_path <- tryCatch(system(paste("which", model),
+                                  intern = TRUE),
                            warning = function(w){
                              NA
                            })
@@ -886,46 +541,6 @@ get_model_executable <- function(model, loc_dir = getwd(), path_only = FALSE){
     message("Using model executable found in the PATH: ", model)
   }
   model
-}
-
-#' Read in an ADMB PSV file
-#'
-#' @param fn The filename (with or without the .psv extension)
-#' @param names Column names for the output. If `NULL`, they will be sequential
-#' starting with the letter 'V'
-#'
-#' @return A data frame containing the PSV file output
-read_psv <- function (fn, names = NULL){
-
-  has_psv_ext <- grepl("^.*\\.psv$", fn)
-  if(!has_psv_ext){
-    fn <- paste0(fn, ".psv")
-  }
-  if(!file.exists(fn)){
-    stop(fn, " not found", call. = FALSE)
-  }
-  # Read in the binary file
-  f <- file(fn, open = "rb")
-  nv <- readBin(f, "int")
-  fs <- file.info(fn)$size
-  isize <- 4
-  dsize <- 8
-  ans <- matrix(readBin(f, "double", n = (fs - 4) / 8),
-                byrow = TRUE, ncol = nv)
-  close(f)
-
-  if(is.null(names)){
-    names <- paste0("V", seq(ncol(ans)))
-  }
-  if(length(names) < ncol(ans)){
-    warning("More columns than names: generating dummy names")
-    names <- c(names, paste0("V", seq(length(names) + 1, ncol(ans))))
-  }else if(length(names) < ncol(ans)){
-    warning("More names than columns: truncating names")
-    names <- names[seq(ncol(ans))]
-  }
-  colnames(ans) <- names
-  as.data.frame(ans)
 }
 
 #' Call [shell()] or [system()] depending on the Operating System

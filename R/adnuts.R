@@ -72,13 +72,12 @@
 #'
 #' @docType package
 #' @name adnuts
-#' @importFrom snowfall sfStop sfInit sfExportAll sfLapply
-#' @importFrom stats rnorm runif cov acf cor dnorm qnorm
-#' @importFrom utils read.csv read.table write.table
+#' @importFrom ellipse ellipse
+#' @importFrom ggplot2 ggplot aes geom_point theme_bw facet_wrap
 #' @importFrom grDevices gray rgb
 #' @importFrom graphics axis box hist legend lines mtext par plot points text
-#' @importFrom ellipse ellipse
 #' @importFrom matrixcalc is.positive.definite
 #' @importFrom rstan monitor
-#' @importFrom ggplot2 ggplot aes geom_point theme_bw facet_wrap
+#' @importFrom stats rnorm runif cov acf cor dnorm qnorm
+#' @importFrom utils read.csv read.table write.table
 NULL
