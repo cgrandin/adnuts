@@ -195,53 +195,6 @@ sample_inits <- function(fit, chains){
   return(list(gr2=gr2, fn2=fn2, x.cur=x.cur, chd=chd))
 }
 
-#' Update the control list.
-#'
-#' @param control A list passed from a sampling function
-#' @return A list with default control elements updated by those supplied
-#' in `control`
-.update_control <- function(control){
-  default <- list(adapt_delta=0.8, metric='unit', stepsize=NULL,
-                  adapt_mass=TRUE, adapt_mass_dense=FALSE,
-                  max_treedepth=12)
-  # Special case if user is doing mle they probably don't want
-  # mass adaptation turned on. They have to override it by
-  # setting TRUE for either adaptation option
-  if(is.character(control$metric)| is.matrix(control$metric)){
-    if(is.null(control$adapt_mass) &
-       is.null(control$adapt_mass_dense)){
-      default$adapt_mass <- default$adapt_mass_dense <- FALSE
-    }
-  }
-  new <- default
-  if(!is.null(control))
-    for(i in names(control))  new[[i]] <- control[[i]]
-  if(new$adapt_mass_dense & new$adapt_mass)
-    new$adapt_mass <- FALSE
-  return(new)
-}
-
-#' Print MCMC progress to console.
-#'
-#' @param iteration The iteration of the MCMC chain.
-#' @param iter The total iterations.
-#' @param warmup The number of warmup iterations.
-#' @param chain The chain being run (bookkeeping only).
-#' @return Nothing. Prints to message to console.
-#' @details This function was modeled after the functionality provided by
-#' the R package rstan.
-.print.mcmc.progress <- function(iteration, iter, warmup, chain){
-  i <- iteration
-  refresh <- max(10, floor(iter/10))
-  if(i==1 | i==iter | i %% refresh ==0){
-    i.width <- formatC(i, width=nchar(iter))
-    out <- paste0('Chain ',chain,', Iteration: ', i.width , "/", iter, " [",
-                  formatC(floor(100*(i/iter)), width=3), "%]",
-                  ifelse(i <= warmup, " (Warmup)", " (Sampling)"))
-    message(out)
-  }
-}
-
 #' Print MCMC timing to console
 #' @param time.warmup Time of warmup in seconds.
 #' @param time.total Time of total in seconds.

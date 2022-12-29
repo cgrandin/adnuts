@@ -40,7 +40,7 @@ read_psv <- function(path,
     warning("PSV file `",
             fn,
             "` not found, using only PSV file found: ", ff)
-    fn <- ff
+    fn <- file.path(path, ff)
   }
 
   # Read in the binary file

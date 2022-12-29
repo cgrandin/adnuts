@@ -1,29 +1,32 @@
 #' Bayesian inference of an ADMB model using the no-U-turn
-#' sampler (NUTS) or random walk Metropolis (RWM) algorithms.
+#' sampler (`NUTS`) or random walk Metropolis (`RWM`) algorithms.
 #'
-#' @description Draw Bayesian posterior samples from an AD Model Builder
-#' (ADMB) model using an MCMC algorithm. `sample_admb(algorithm = 'NUTS')` generates
-#' posterior samples from which inference can be made. Adaptation
+#' @description
+#' Draw Bayesian posterior samples from an AD Model Builder
+#' (ADMB) model using an MCMC algorithm. `sample_admb(algorithm = 'nuts')`
+#' generates posterior samples from which inference can be made. Adaptation
 #' schemes are used with NUTS so specifying tuning parameters is
 #' not necessary, and parallel execution reduces overall run
 #' time.
 #'
-#' The RWM algorithm provides no new functionality not available
-#' from previous versions of ADMB. However, `sample_admb(algorithm = 'RWM')` has an
-#' improved console output, is setup for parallel execution, and
+#' The `RWM` algorithm provides no new functionality not available
+#' from previous versions of `ADMB`. However, `sample_admb(algorithm = 'rwm')`
+#' has an improved console output, is setup for parallel execution, and
 #' a smooth workflow for diagnostics. Note that the algorithms'
 #' code lies in the ADMB source code, and [adnuts] provides a
 #' wrapper for it. See vignette for more information.
 #'
-#' @details This function implements algorithm 6 of Hoffman and Gelman (2014),
+#' @details
+#'  This function implements algorithm 6 of Hoffman and Gelman (2014),
 #' and loosely follows package [rstan]. The step size can be
 #' adapted or specified manually. The metric (i.e., mass matrix) can be
 #' unit diagonal, adapted diagonal (default and recommended), a dense
 #' matrix specified by the user, or an adapted dense matrix.
 #' Further control of algorithms can be
 #' specified with the `control` argument.
-#' The adaptation scheme (step size and mass matrix) is based heavily on those by the
-#' software Stan, and more details can be found in that documentation and the vignette
+#' The adaptation scheme (step size and mass matrix) is based heavily on
+#' those by the software Stan, and more details can be found in that
+#' documentation and the vignette.
 #'
 #' @author Cole Monnahan
 #' @param model Name of model (i.e., model.tpl)
@@ -36,7 +39,7 @@
 #'   recommended to initialize multiple chains from dispersed
 #'   points. A of NULL signifies to use the starting values
 #'   present in the model (i.e., `obj$par`) for all chains.
-#' @param chains The number of chains to run. If greater than 1,
+#' @param num_chains The number of chains to run. If greater than 1,
 #' use parallel execution (1 core per chain)
 #' @param warmup The number of warm up iterations.
 #' @param seeds A vector of seeds, one for each chain.
@@ -48,6 +51,7 @@
 #'   will quit running.
 #' @param control A list to control the sampler. See details for
 #'   further use.
+#' @param algorithm The algorithm to use, one of `nuts` or `rwm`
 #' @param skip_optimization Whether to run the optimizer before
 #'   running MCMC. This is rarely need as it is better to run it
 #'   once before to get the covariance matrix, or the estimates
@@ -88,46 +92,14 @@
 #' @param refresh The rate at which to refresh progress to the
 #'   console. Defaults to even 10%. A value of 0 turns off
 #'   progress updates
-#' @section Warning: The user is responsible for specifying the
-#'   model properly (priors, starting values, desired parameters
-#'   fixed, etc.), as well as assessing the convergence and
-#'   validity of the resulting samples (e.g., through the
-#'   [coda] package), or with function
-#'   [launch_shinytmb()]` before making inference.
-#'   Specifically, priors must be specified in the
-#'   template file for each parameter. Unspecified priors will be
-#'   implicitly uniform
-#' @examples
-#' \dontrun{
-#' ## This is the packaged simple regression model
-#' path.simple <- system.file('examples', 'simple', package='adnuts')
-#' ## It is best to have your ADMB files in a separate folder and provide that
-#' ## path, so make a copy of the model folder locally.
-#' path <- 'simple'
-#' dir.create(path)
-#' trash <- file.copy(from=list.files(path.simple, full.names=TRUE), to=path)
-#' ## Compile and run model
-#' oldwd <- getwd()
-#' setwd(path)
-#' system_('admb simple.tpl')
-#' system_('simple')
-#' setwd('..')
-#' init <- function() rnorm(2)
-#' ## Run NUTS with defaults
-#' fit <- sample_nuts(model='simple', init=init, path=path)
-#' unlink(path, TRUE) # cleanup folder
-#' setwd(oldwd)
-#' }
-#'
+#' @param fn_logfile The name of a file to output `stdout` from `system()`
+#' calls to. If `NULL`, `stdout` will be printed to the screen
 #' @name samplers
 NULL
 
 #' Sampling from ADMB models
 #'
 #' @rdname samplers
-#' @param algorithm The algorithm to use, one of "NUTS" or "RWM"
-#' @param fn_logfile The name of a file to output `stdout` from `system()`
-#' calls to. If `NULL`, `stdout` will be printed to the screen
 #' @importFrom furrr future_map
 #' @importFrom future plan
 #' @importFrom parallel detectCores
@@ -136,14 +108,14 @@ sample_admb <- function(model,
                         path = NULL,
                         iter = 2000,
                         init = NULL,
-                        chains = 3,
+                        num_chains = 3,
                         warmup = NULL,
                         seeds = NULL,
                         thin = 1,
                         mceval = FALSE,
                         duration = NULL,
                         control = NULL,
-                        algorithm = "NUTS",
+                        algorithm = c("nuts", "rwm"),
                         skip_optimization = TRUE,
                         skip_monitor = FALSE,
                         skip_unbounded = TRUE,
@@ -151,25 +123,40 @@ sample_admb <- function(model,
                         hess_step = FALSE,
                         fn_logfile = "model_output.log"){
 
+  algorithm <- match.arg(algorithm)
+
   if(is.null(path)){
-    stop("You must supply a path which contains the model files", call. = FALSE)
+    stop("You must supply a path which contains the model files",
+         call. = FALSE)
   }
+
+  if(num_chains < 1){
+    stop("The number of chains `num_chains` cannot be less than 1",
+         call. = FALSE)
+  }
+
+  if(thin < 1){
+    stop("The thinning value `thin` cannot be less than 1",
+         call. = FALSE)
+  }
+
   cores_avail  <- detectCores()
-  if(chains > cores_avail) {
-    chains <- cores_avail - 1
+  if(num_chains > cores_avail) {
+    num_chains <- cores_avail - 1
     warning(paste0("Specified number of chains greater than number ",
-                   "of available cores, using number of available cores - 1 = ", chains))
+                   "of available cores, using number of available cores - 1 = ", num_chains))
   }
   if(!is.null(control) && !is.list(control)){
-    stop("Control argument invalid, must be a list", call. = FALSE)
+    stop("Control argument invalid, must be a list",
+         call. = FALSE)
   }
-  stopifnot(chains >= 1)
-  stopifnot(thin >= 1)
+
   if(is.null(seeds)){
-    seeds <- sample.int(1e7, size = chains)
-    message("seeds is NULL, setting random seeds: ", paste(seeds, collapse = ","))
+    seeds <- sample.int(1e7, size = num_chains)
+    message("seeds is NULL, setting random seeds: ",
+            paste(seeds, collapse = ", "))
   }
-  if(iter < 1 || !is.numeric(iter)){
+  if(iter <= 1 || !is.numeric(iter)){
     stop("iter must be > 1", call. = FALSE)
   }
 
@@ -182,59 +169,59 @@ sample_admb <- function(model,
                    "`skip_unbounded` = `FALSE`, ignoring"))
     skip_unbounded <- TRUE
   }
-  # Update control with defaults
+
   if(is.null(warmup)){
     warmup <- floor(iter / 2)
     message("`warmup` is `NULL`, setting to `floor(iter / 2)` = ", warmup)
   }
-  if(!(algorithm %in% c("NUTS", "RWM"))){
-    stop("Invalid algorithm specified",
-         call. = FALSE)
-  }
-  if(algorithm == "NUTS")
+
+  if(algorithm == "nuts"){
     control <- .update_control(control)
+  }
+
   if(is.null(init)){
     warning("Using MLE inits for each chain. It is strongly recommended ",
             "that you use dispersed inits")
   }else if(is.function(init)){
-    init <- map(seq_len(chains), ~{init()})
+    init <- map(seq_len(num_chains), ~{init()})
   }else if(!is.list(init)){
     stop("`init` must be `NULL`, a list, or a function",
          call. = FALSE)
   }
-  if(!is.null(init) && length(init) != chains){
+  if(!is.null(init) && length(init) != num_chains){
     stop("Length of `init` does not equal number of chains",
          call. = FALSE)
   }
-  # Delete any psv files, adaptation.csv, and unbounded.csv in case something
-  # goes wrong we don't use old values by accident
-  files_to_remove <- grep("adaptation\\.csv|unbounded\\.csv", dir(path), value = TRUE)
+  # Delete old *.psv, adaptation.csv and unbounded.csv files
+  files_to_remove <- grep(".*\\.psv|adaptation\\.csv|unbounded\\.csv",
+                          dir(path),
+                          value = TRUE)
   if(length(files_to_remove)){
     unlink(file.path(path, files_to_remove))
   }
 
-  map_func <- `if`(chains > 1, future_map, map)
+  map_func <- `if`(num_chains > 1, future_map, map)
 
-  if(chains > 1){
-    plan("multisession", workers = chains)
+  if(num_chains > 1){
+    plan("multisession", workers = num_chains)
   }
-  mcmc_out <- map_func(seq_len(chains), function(i)
-    sample_admb_parallel(parallel_number = i,
-                         path = path,
-                         model = model,
-                         duration = duration,
-                         algorithm = algorithm,
-                         iter = iter,
-                         init = init[[i]],
-                         warmup = warmup,
-                         seed = seeds[i],
-                         thin = thin,
-                         control = control,
-                         skip_optimization = skip_optimization,
-                         admb_args = admb_args,
-                         hess_step = hess_step,
-                         fn_logfile = fn_logfile))
-  if(chains > 1){
+  mcmc_out <- map_func(seq_len(num_chains), function(i)
+    run_admb_sampler(chain_num = i,
+                     path = path,
+                     model = model,
+                     duration = duration,
+                     algorithm = algorithm,
+                     iter = iter,
+                     init = init[[i]],
+                     warmup = warmup,
+                     seed = seeds[i],
+                     thin = thin,
+                     control = control,
+                     skip_optimization = skip_optimization,
+                     admb_args = admb_args,
+                     hess_step = hess_step,
+                     fn_logfile = fn_logfile))
+  if(num_chains > 1){
     plan()
   }
 
@@ -255,7 +242,7 @@ sample_admb <- function(model,
     chain_length <- iter / thin
   }
 
-  samples <- array(NA, dim = c(chain_length, chains, 1 + length(par_names)),
+  samples <- array(NA, dim = c(chain_length, num_chains, 1 + length(par_names)),
                    dimnames = list(NULL, NULL, c(par_names, "lp__")))
 
   if(skip_unbounded){
@@ -264,7 +251,7 @@ sample_admb <- function(model,
     samples_unbounded <- samples
   }
 
-  for(i in seq_len(chains)){
+  for(i in seq_len(num_chains)){
     samples[, i, ] <- mcmc_out[[i]]$samples[seq_len(chain_length), ]
     if(!skip_unbounded)
       samples_unbounded[, i, ] <-
@@ -297,7 +284,7 @@ sample_admb <- function(model,
   # or in different folders if processed in parallel. Thus mceval needs to be
   # run after recombining chains
   message("Merging post-warmup chains into main folder: ", path)
-  sa <- map(seq_len(chains), ~{
+  sa <- map(seq_len(num_chains), ~{
     samples[-seq_len(warmup), .x, -dim(samples)[3]]
   }) %>%
     do.call(rbind, .)

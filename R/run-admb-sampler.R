@@ -1,19 +1,22 @@
-#' A wrapper for running ADMB models in parallel
+#' Setup directories and run a sampler, either [sample_admb_rwm()]
+#' or [sample_admb_nuts()]
 #'
-#' @param parallel_number The chain number
+#' @param chain_num The chain number
 #' @param path The path name to append the chain number to
-#' @param algorithm NUTS or RWM
+#' @param algorithm The algorithm to use, one of `nuts` or `rwm`
 #' @param ... Arguments passed to the [fit()] function
 #'
 #' @return Output from the [fit()] function
 #' @export
-sample_admb_parallel <- function(parallel_number,
-                                 path,
-                                 algorithm,
-                                 ...){
+run_admb_sampler <- function(chain_num,
+                             path,
+                             algorithm = c("nuts", "rwm"),
+                             ...){
+
+  algorithm <- match.arg(algorithm)
 
   # pad the chain number to two digits
-  chain_num_char <- as.character(parallel_number)
+  chain_num_char <- as.character(chain_num)
   nc <- nchar(chain_num_char)
   chain_num_char <- ifelse(nc == 1,
                            paste0("0", chain_num_char),
@@ -30,16 +33,17 @@ sample_admb_parallel <- function(parallel_number,
   trash <- file.copy(from = list.files(path, full.names = TRUE),
                      to = chain_dir)
 
-  if(algorithm == "NUTS"){
+  if(algorithm == "nuts"){
     fit <- sample_admb_nuts(path = chain_dir,
-                            chain = parallel_number,
+                            chain = chain_num,
                             ...)
-  }else if(algorithm == "RWM"){
+  }else if(algorithm == "rwm"){
     fit <- sample_admb_rwm(path = chain_dir,
-                           chain = parallel_number,
+                           chain = chain_num,
                            ...)
   }else{
-    stop("Algorithm must be either 'NUTS' or 'RWM'", call. = FALSE)
+    stop("Algorithm must be either `nuts` or `rwm`",
+         call. = FALSE)
   }
   unlink(chain_dir,
          recursive = TRUE,
