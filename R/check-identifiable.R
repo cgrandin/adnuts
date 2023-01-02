@@ -9,10 +9,10 @@
 #' `FishStatsUtils` package.
 #' @return Prints output of bad parameters and invisibly returns it.
 #' @export
-check_identifiable <- function(model, path){
+check_identifiable <- function(path){
 
   # Check eigen decomposition
-  fit <- read_mle_fit(model, path)
+  fit <- read_mle_fit(path)
   hes <- read_admb_hessian(path)
   ev <-eigen(hes)
   which_bad <- which(ev$values < sqrt(.Machine$double.eps))

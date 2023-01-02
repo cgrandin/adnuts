@@ -1,58 +1,45 @@
-#' Read in an ADMB PSV file
+#' Read in a binary ADMB PSV file
 #'
 #' @param path The path to the location of the PSV file
-#' @param fn_psv The name of the psv file, with or without the extension
-#' psv or .PSV
 #' @param nms Column names for the output. If `NULL`, they will be sequential
 #' starting with the letter 'V'
 #'
 #' @return A data frame with the PSV file output
 read_psv <- function(path,
-                     fn_psv = NULL,
                      nms = NULL){
 
   if(!dir.exists(path)){
     stop("Directory `path` = `", path, "` does not exist",
          call. = FALSE)
   }
-  if(is.null(fn_psv)){
-    stop("PSV file name `fn_psv` is `NULL`",
+
+  fns <- list.files(path)
+  psv_fn_ind <- grep("\\.(psv)|(PSV)$", fns)
+  if(!length(psv_fn_ind)){
+    stop("No `psv` file found in directory:\n",
+         path,
          call. = FALSE)
   }
-  if(!length(grep("\\.(psv)|(PSV)$", fn_psv))){
-    fn_psv <- paste0(fn_psv, ".psv")
+  if(length(psv_fn_ind) > 1){
+    stop("More than one `psv` file found in directory:\n",
+         path,
+         call. = FALSE)
   }
-  fn <- file.path(path, fn_psv)
 
-  if(!file.exists(fn)){
-    # Sometimes ADMB will shorten the name of the psv file,
-    # so search for it here
-    fns <- list.files(path)
-    mtch <- grep("\\.(psv)|(PSV)$", fns)
-    if(!length(mtch)){
-      stop("No .psv file found", call. = FALSE)
-    }
-    if(length(mtch) > 1){
-      stop("More than one .psv file found", call. = FALSE)
-    }
-
-    ff <- fns[mtch]
-    warning("PSV file `",
-            fn,
-            "` not found, using only PSV file found: ", ff)
-    fn <- file.path(path, ff)
-  }
+  fn <- file.path(path, fns[psv_fn_ind])
 
   # Read in the binary file
-  f <- file(fn, open = "rb")
-  nv <- readBin(f, "int")
+  psv_conn <- file(fn, open = "rb")
+  psv_ncol <- readBin(psv_conn, "int")
   fs <- file.info(fn)$size
   isize <- 4
   dsize <- 8
-  f_contents <- matrix(readBin(f, "double", n = (fs - isize) / dsize),
+  f_contents <- matrix(readBin(psv_conn,
+                               "double",
+                               n = (fs - isize) / dsize),
                        byrow = TRUE,
-                       ncol = nv)
-  close(f)
+                       ncol = psv_ncol)
+  close(psv_conn)
 
   if(is.null(nms)){
     nms <- paste0("V", seq(ncol(f_contents)))

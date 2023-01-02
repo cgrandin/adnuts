@@ -176,11 +176,11 @@ sample_admb <- function(model,
   }
 
   if(algorithm == "nuts"){
-    control <- .update_control(control)
+    control <- update_control(control)
   }
 
   if(is.null(init)){
-    warning("Using MLE inits for each chain. It is strongly recommended ",
+    message("Using MLE inits for each chain. It is strongly recommended ",
             "that you use dispersed inits")
   }else if(is.function(init)){
     init <- map(seq_len(num_chains), ~{init()})
@@ -226,17 +226,17 @@ sample_admb <- function(model,
   }
 
   warmup <- mcmc_out[[1]]$warmup
-  mle <- read_mle_fit(model = model, path = path)
+  mle <- read_mle_fit(path)
 
   if(is.null(mle)){
     par_names <- dimnames(mcmc_out[[1]]$samples)[[2]]
     par_names <- par_names[-length(par_names)]
   }else{
-    par_names <- mle$par.names
+    par_names <- mle$par_names
   }
   iters <- map_dbl(mcmc_out, ~{dim(.x$samples)[1]})
   if(any(iters != iter / thin)){
-    chain_length <- min(iters)
+    chain_length <- rep(min(iters), length(iters))
     warning("Variable chain lengths, truncating to minimum = ", chain_length)
   }else{
     chain_length <- iter / thin
@@ -264,17 +264,11 @@ sample_admb <- function(model,
       .x$sampler_params[seq_len(chain_length), ]
     })
   }
-  time_warmup <- map_dbl(mcmc_out, ~{
-    if(is.null(.x$time.warmup)){
+  runtime <- map_dbl(mcmc_out, ~{
+    if(is.null(.x$runtime)){
       return(NA_real_)
     }
-    .x$time.warmup
-  })
-  time_total <- map_dbl(mcmc_out, ~{
-    if(is.null(.x$time.total)){
-      return(NA_real_)
-    }
-    .x$time.total
+    .x$runtime$time / 1e6
   })
   cmd <- map_chr(mcmc_out, ~{.x$cmd})
   if(chain_length < warmup){
@@ -323,8 +317,7 @@ sample_admb <- function(model,
   result <- list(samples = samples,
                  sampler_params = sampler_params,
                  samples_unbounded = samples_unbounded,
-                 time_warmup = time_warmup,
-                 time_total = time_total,
+                 runtime = runtime,
                  algorithm = algorithm,
                  warmup = warmup,
                  model = model,

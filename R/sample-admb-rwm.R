@@ -4,6 +4,9 @@
 #' user, instead prefer [sample_rwm()]
 #' @rdname samplers
 #' @seealso [sample_rwm()]
+#' @importFrom tibble as_tibble
+#' @importFrom dplyr mutate
+#' @importFrom microbenchmark microbenchmark
 sample_admb_rwm <- function(path,
                             model,
                             iter = 2000,
@@ -78,15 +81,17 @@ sample_admb_rwm <- function(path,
   if(!is.null(fn_logfile)){
     cmd <- paste0(cmd, " > ", fn_logfile, " 2>&1")
   }
-browser()
-  time <- system_(cmd, ignore.stdout = !verbose)[3]
+
+  runtime <- microbenchmark(system_(cmd, ignore.stdout = !verbose),
+                            times = 1)
+
   unbounded_fn <- file.path(path, "unbounded.csv")
   if(!file.exists(unbounded_fn)){
     stop(paste0("RWM failed to run in chain ", chain, ". Check inputs."))
   }
   unbounded <- as.matrix(read.csv(unbounded_fn, header = FALSE))
   dimnames(unbounded) <- NULL
-  pars <- read_psv(path, model)
+  pars <- read_psv(path)
   par_names <- names(pars)
 
   lp <- as.vector(read.table(file.path(path, "rwm_lp.txt"), header = TRUE)[,1])
@@ -98,8 +103,7 @@ browser()
   # it here
   list(samples = pars,
        sampler_params = NULL,
-       time.total = time,
-       time.warmup = NA,
+       runtime = runtime,
        warmup = warmup,
        model = model,
        par_names = par_names,

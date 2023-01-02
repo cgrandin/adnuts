@@ -95,7 +95,7 @@ print_adfit <- function(x, ...){
              x$algorithm, "`` with `", iter, "` iter and `", chains,
              "` chains\n"))
 
-  rt <- sum(x$time.total) / chains
+  rt <- sum(x$runtime) / chains
 
   ru <- "seconds"
 

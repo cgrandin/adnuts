@@ -32,7 +32,6 @@ run_admb_sampler <- function(chain_num,
 
   trash <- file.copy(from = list.files(path, full.names = TRUE),
                      to = chain_dir)
-
   if(algorithm == "nuts"){
     fit <- sample_admb_nuts(path = chain_dir,
                             chain = chain_num,

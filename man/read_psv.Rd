@@ -2,15 +2,12 @@
 % Please edit documentation in R/read-psv.R
 \name{read_psv}
 \alias{read_psv}
-\title{Read in an ADMB PSV file}
+\title{Read in a binary ADMB PSV file}
 \usage{
-read_psv(path, fn_psv = NULL, nms = NULL)
+read_psv(path, nms = NULL)
 }
 \arguments{
 \item{path}{The path to the location of the PSV file}
-
-\item{fn_psv}{The name of the psv file, with or without the extension
-psv or .PSV}
 
 \item{nms}{Column names for the output. If \code{NULL}, they will be sequential
 starting with the letter 'V'}
@@ -19,5 +16,5 @@ starting with the letter 'V'}
 A data frame with the PSV file output
 }
 \description{
-Read in an ADMB PSV file
+Read in a binary ADMB PSV file
 }

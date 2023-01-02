@@ -28,15 +28,18 @@ Suggests:
   rmarkdown,
   testthat (>= 2.1.0)
 Imports:
+  dplyr,
   ellipse,
   furrr,
   future,
   ggplot2,
   matrixcalc,
+  microbenchmark,
   parallel,
   purrr,
   rlang,
   rstan,
-  R2admb
+  R2admb,
+  tibble
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)

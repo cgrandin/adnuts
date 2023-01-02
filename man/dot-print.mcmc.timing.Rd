@@ -4,12 +4,10 @@
 \alias{.print.mcmc.timing}
 \title{Print MCMC timing to console}
 \usage{
-.print.mcmc.timing(time.warmup, time.total)
+.print.mcmc.timing(runtime)
 }
 \arguments{
-\item{time.warmup}{Time of warmup in seconds.}
-
-\item{time.total}{Time of total in seconds.}
+\item{runtime}{Time of total in seconds.}
 }
 \value{
 Nothing. Prints message to console.

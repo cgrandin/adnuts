@@ -22,7 +22,7 @@ sample_admb_nuts <- function(path,
                              fn_logfile = "model_output.log",
                              ...){
 
-  control <- .update_control(control)
+  control <- update_control(control)
   eps <- control$stepsize
   stopifnot(iter >= 1)
   stopifnot(warmup <= iter)
@@ -122,7 +122,9 @@ sample_admb_nuts <- function(path,
     cmd <- paste0(cmd, " > ", fn_logfile, " 2>&1")
   }
 
-  time <- system.time(system_(cmd, ignore.stdout = !verbose))[3]
+  time <- microbenchmark(system_(cmd, ignore.stdout = !verbose),
+                         times = 1)
+
   if(!file.exists(file.path(path, "adaptation.csv")) ||
      !file.exists(file.path(path, "unbounded.csv"))){
 
@@ -138,7 +140,7 @@ sample_admb_nuts <- function(path,
   unbounded <- as.matrix(read.csv(file.path(path, "unbounded.csv"),
                                   header = FALSE))
   dimnames(unbounded) <- NULL
-  pars <- read_psv(path, model)
+  pars <- read_psv(path)
 
   par_names <- names(pars)
   if(!"lp__" %in% dimnames(sampler_params)[[2]]){
@@ -159,14 +161,12 @@ sample_admb_nuts <- function(path,
   pars <- pars[seq(1, nrow(pars), by = thin),]
   unbounded <- unbounded[seq(1, nrow(unbounded), by = thin), ]
   sampler_params <- sampler_params[seq(1, nrow(sampler_params), by = thin), ]
-  time_total <- time
-  time_warmup <- NA
+  runtime <- time
   warmup <- warmup / thin
 
   list(samples = pars,
        sampler_params = sampler_params,
-       time_total = time_total,
-       time_warmup = time_warmup,
+       runtime = runtime,
        warmup = warmup,
        max_treedepth = max_td,
        model = model,

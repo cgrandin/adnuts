@@ -196,17 +196,15 @@ sample_inits <- function(fit, chains){
 }
 
 #' Print MCMC timing to console
-#' @param time.warmup Time of warmup in seconds.
-#' @param time.total Time of total in seconds.
+#' @param runtime Time of total in seconds.
 #' @return Nothing. Prints message to console.
 #'
 #' @details This function was modeled after the functionality provided by
 #'   the R package [rstan]
-.print.mcmc.timing <- function(time.warmup, time.total){
-  x <- ' Elapsed Time: '
-  message(paste0(x, sprintf("%.1f", time.warmup), ' seconds (Warmup)'))
-  message(paste0(x, sprintf("%.1f", time.total-time.warmup), ' seconds (Sampling)'))
-  message(paste0(x, sprintf("%.1f", time.total), ' seconds (Total)'))
+.print.mcmc.timing <- function(runtime){
+  message(" Elapsed time:\n",
+          sprintf("%.1f", runtime),
+          " seconds")
 }
 
 #' Convert adnuts fit (named list) into a \code{shinystan} object.
@@ -311,82 +309,6 @@ write_psv <- function(fn,
   on.exit(close(con), add = TRUE)
   writeBin(object = ncol(samples), con = con)
   writeBin(object = as.vector(t(samples)), con = con)
-}
-
-#' Read maximum likelihood fit for ADMB model
-#'
-#' @details This is based loosely on [r4ss::read.admbFit()]
-#'
-#' @param model Model executable name
-#' @return A list containing, MLE estimates, standard errors, covariance
-#' and correlation matrices, and other output from ADMB
-#'
-#' @export
-read_mle_fit <- function(model,
-                         path = NULL){
-
-  # Sequentially read .par file which contains model size, minimum NLL,
-  # and maxgrad at the top
-  if(model == "ss3"){
-    model <- "ss"
-  }
-
-  f <- file.path(path, paste0(model, ".par"))
-  if(!file.exists(f)){
-    warning(f, " not found. Could not read in MLE quantities or parameter names")
-    return(NULL)
-  }
-  par <- as.numeric(scan(f, what = "", n = 16, quiet = TRUE)[c(6, 11, 16)])
-  nopar <- as.integer(par[1])
-  # Objective function value
-  nll <- par[2]
-  maxgrad <- par[3]
-
-  # The .cor file contains parameter (and derived quantity) names,
-  # estimates, and se's. This is more convenient to read in than the .par
-  # file.
-  f <- file.path(path, paste0(model, ".cor"))
-  if(!file.exists(f)){
-    warning(f, " not found. Could not read in MLE quantities or parameter names")
-    return(NULL)
-  }
-  xx <- readLines(f)
-  # Total parameter including sdreport variables
-  totPar <- length(xx) - 2
-  if(totPar < nopar){
-    warning(f, " did not match the .cor file. Maybe hessian has failed? MLE object not available")
-    return(NULL)
-  }
-  # Log of the determinant of the hessian
-  logDetHess <- as.numeric(strsplit(xx[1], "=")[[1]][2])
-  sublin <- lapply(strsplit(xx[1:totPar + 2], " "),function(x) x[x != ""])
-  names.all <- unlist(lapply(sublin,function(x)x[2]))[1:nopar]
-  names.all <- as.vector(do.call(c,
-                                 sapply(unique(names.all), function(n){
-                                   x <- names.all[names.all == n]
-                                   if(length(x)){
-                                     return(list(x))
-                                   }
-                                   list(paste0(x, "[", 1:length(x), "]"))
-                                 }))
-                         )
-  est <- as.numeric(unlist(lapply(sublin,function(x) x[3])))
-  std <- as.numeric(unlist(lapply(sublin,function(x) x[4])))
-  # The correlation in the bounded space.
-  cor <- matrix(NA, totPar, totPar)
-  corvec <- unlist(sapply(1:length(sublin), function(i)sublin[[i]][5:(4 + i)]))
-  cor[upper.tri(cor, diag = TRUE)] <- as.numeric(corvec)
-  cor[lower.tri(cor)] <- t(cor)[lower.tri(cor)]
-  # Covariance matrix
-  # cov <- cor*(std %o% std)
-  list(nopar = nopar,
-       nll = nll,
-       maxgrad = maxgrad,
-       par.names = names.all[1:nopar],
-       names.all = names.all,
-       est = est,
-       se = std,
-       cor = cor[1:nopar, 1:nopar])
 }
 
 #' Find the model executable name on your filesystem
