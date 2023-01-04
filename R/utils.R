@@ -157,8 +157,8 @@ plot_sampler_params <- function(fit, plot=TRUE){
 #' @export
 sample_inits <- function(fit, chains){
   post <- extract_samples(fit)
-  ind <- sample(1:nrow(post), size=chains)
-  lapply(ind, function(i) as.numeric(post[i,]))
+  ind <- sample(seq_len(nrow(post)), size = chains)
+  lapply(ind, function(i) as.numeric(post[i, ]))
 }
 
 #' Update algorithm for mass matrix.
@@ -193,18 +193,6 @@ sample_inits <- function(fit, chains){
   ## Need to adjust the current parameters so the chain is
   ## continuous. First rotate to be in Y space.
   return(list(gr2=gr2, fn2=fn2, x.cur=x.cur, chd=chd))
-}
-
-#' Print MCMC timing to console
-#' @param runtime Time of total in seconds.
-#' @return Nothing. Prints message to console.
-#'
-#' @details This function was modeled after the functionality provided by
-#'   the R package [rstan]
-.print.mcmc.timing <- function(runtime){
-  message(" Elapsed time:\n",
-          sprintf("%.1f", runtime),
-          " seconds")
 }
 
 #' Convert adnuts fit (named list) into a \code{shinystan} object.
@@ -303,12 +291,22 @@ write_psv <- function(fn,
                       samples,
                       path = NULL){
 
+  if(is.null(path)){
+    stop("`path` cannot be `NULL`",
+         call. = FALSE)
+  }
+  if(!dir.exists(path)){
+    stop("Directory `path` = `", path, "` does not exist",
+         call. = FALSE)
+  }
+
   samples <- as.matrix(samples)
   psv <- file.path(path, paste0(fn, ".psv"))
   con <- file(psv, "wb")
   on.exit(close(con), add = TRUE)
   writeBin(object = ncol(samples), con = con)
   writeBin(object = as.vector(t(samples)), con = con)
+  invisible()
 }
 
 #' Find the model executable name on your filesystem

@@ -180,8 +180,8 @@ sample_admb <- function(model,
   }
 
   if(is.null(init)){
-    message("Using MLE inits for each chain. It is strongly recommended ",
-            "that you use dispersed inits")
+    message("Using MLE inits for each chain. Argument `init` was not ",
+            "supplied.")
   }else if(is.function(init)){
     init <- map(seq_len(num_chains), ~{init()})
   }else if(!is.list(init)){

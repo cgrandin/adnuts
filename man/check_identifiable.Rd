@@ -4,12 +4,12 @@
 \alias{check_identifiable}
 \title{Check identifiability from model Hessian}
 \usage{
-check_identifiable(model, path)
+check_identifiable(path)
 }
 \arguments{
-\item{model}{Model name without file extension}
-
 \item{path}{Path to model folder, that contains \code{admodel.hes}}
+
+\item{model}{Model name without file extension}
 }
 \value{
 Prints output of bad parameters and invisibly returns it.
