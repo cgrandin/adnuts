@@ -7,7 +7,7 @@
 #' @seealso [sample_nuts()]
 sample_admb_nuts <- function(path,
                              model,
-                             iter = 2000,
+                             num_samples = 2000,
                              init = NULL,
                              chain = 1,
                              thin = 1,
@@ -24,15 +24,15 @@ sample_admb_nuts <- function(path,
 
   control <- update_control(control)
   eps <- control$stepsize
-  stopifnot(iter >= 1)
-  stopifnot(warmup <= iter)
+  stopifnot(num_samples >= 1)
+  stopifnot(warmup <= num_samples)
   stopifnot(duration > 0)
   stopifnot(thin >= 1)
   if(is.null(warmup)){
     stop("Must provide warmup", call. = FALSE)
   }
-  if(thin < 1 | thin > iter){
-    stop("Thin must be >1 and < iter", call. = FALSE)
+  if(thin < 1 | thin > num_samples){
+    stop("Thin must be >1 and < num_samples", call. = FALSE)
   }
   max_td <- control$max_treedepth
   adapt_delta <- control$adapt_delta
@@ -40,9 +40,9 @@ sample_admb_nuts <- function(path,
   # Build the command to run the model
   if(skip_optimization){
     cmd <- paste0("cd ", path, " && ", model, ifelse(hess_step, "", " -nohess"),
-                  " -nox -maxfn 0 -phase 1000 -nuts -mcmc ", iter)
+                  " -nox -maxfn 0 -phase 1000 -nuts -mcmc ", num_samples)
   } else {
-    cmd <- paste0("cd ", path ," && ", model, " -hbf -nuts -mcmc ", iter)
+    cmd <- paste0("cd ", path ," && ", model, " -hbf -nuts -mcmc ", num_samples)
   }
   cmd <- paste0(cmd, " -warmup ", warmup, " -chain ", chain)
   if(!is.null(seed)){
@@ -122,8 +122,12 @@ sample_admb_nuts <- function(path,
     cmd <- paste0(cmd, " > ", fn_logfile, " 2>&1")
   }
 
-  time <- microbenchmark(system_(cmd, ignore.stdout = !verbose),
-                         times = 1)
+  sys_out <- system_(cmd, intern = TRUE)
+  sys_attr <- attributes(sys_out)
+  if(!is.null(sys_attr$status) && sys_attr$status){
+    stop("The `system()` call failed with status ", sys_attr$status, ":\n",
+         cmd, call. = FALSE)
+  }
 
   if(!file.exists(file.path(path, "adaptation.csv")) ||
      !file.exists(file.path(path, "unbounded.csv"))){
@@ -161,12 +165,10 @@ sample_admb_nuts <- function(path,
   pars <- pars[seq(1, nrow(pars), by = thin),]
   unbounded <- unbounded[seq(1, nrow(unbounded), by = thin), ]
   sampler_params <- sampler_params[seq(1, nrow(sampler_params), by = thin), ]
-  runtime <- time
   warmup <- warmup / thin
 
   list(samples = pars,
        sampler_params = sampler_params,
-       runtime = runtime,
        warmup = warmup,
        max_treedepth = max_td,
        model = model,

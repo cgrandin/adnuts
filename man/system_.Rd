@@ -7,7 +7,7 @@
 system_(...)
 }
 \arguments{
-\item{...}{Pass all arguments to the command function}
+\item{...}{Arguments to pass to either \code{\link[=shell]{shell()}} or \code{\link[=system]{system()}}}
 }
 \value{
 The output from the command function called

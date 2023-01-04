@@ -9,11 +9,11 @@
 #' @importFrom microbenchmark microbenchmark
 sample_admb_rwm <- function(path,
                             model,
-                            iter = 2000,
+                            num_samples = 2000,
                             init = NULL,
                             chain = 1,
                             thin = 1,
-                            warmup = ceiling(iter / 2),
+                            warmup = ceiling(num_samples / 2),
                             seed = NULL,
                             duration = NULL,
                             control = NULL,
@@ -30,23 +30,33 @@ sample_admb_rwm <- function(path,
   }
   refresh <- control$refresh
   metric <- "mle"
-  stopifnot(iter >= 1)
-  stopifnot(warmup <= iter)
+  stopifnot(num_samples >= 1)
+  stopifnot(warmup <= num_samples)
   stopifnot(duration > 0)
   stopifnot(thin >= 1)
-  if(is.null(warmup)) stop("Must provide warmup")
-  if(thin < 1 | thin > iter) stop("Thin must be > 1 and < iter")
+  if(is.null(warmup)){
+    stop("Must provide warmup", call. = FALSE)
+  }
+  if(thin < 1 | thin > num_samples){
+    stop("Thin must be > 1 and < num_samples", call. = FALSE)
+  }
 
   # Build the command to run the model
   if(skip_optimization){
-    cmd <- paste0("cd ", path, " && ", model," -nox -nohess -maxfn 0 -phase 1000 -rwm -mcmc ", iter)
+    cmd <- paste0("cd ", path, " && ",
+                  model," -nox -nohess -maxfn 0 -phase 1000 -rwm -mcmc ", num_samples)
   } else {
-    cmd <- paste0("cd ", path, " && ", model,"-rwm -mcmc ", iter)
+    cmd <- paste0("cd ", path, " && ",
+                  model,"-rwm -mcmc ", num_samples)
   }
 
   cmd <- paste0(cmd, " -mcscale ", warmup, " -chain ", chain)
-  if(!is.null(seed)) cmd <- paste0(cmd, " -mcseed ", seed)
-  if(!is.null(duration)) cmd <- paste0(cmd, " -duration ", duration)
+  if(!is.null(seed)){
+    cmd <- paste0(cmd, " -mcseed ", seed)
+  }
+  if(!is.null(duration)){
+    cmd <- paste0(cmd, " -duration ", duration)
+  }
   cmd <- paste0(cmd, " -mcsave ", thin)
 
   # Three options for metric. NULL (default) is to use the MLE estimates
@@ -56,34 +66,43 @@ sample_admb_rwm <- function(path,
   if(is.matrix(metric)){
     ## User defined one will be writen to admodel.cov
     cor_user <- metric / sqrt(diag(metric) %o% diag(metric))
-    if(!is.positive.definite(x=cor_user))
+    if(!is.positive.definite(x = cor_user))
       stop("Invalid mass matrix, not positive definite")
     .write.admb.cov(metric)
-  } else if(is.null(metric)){
+  }else if(is.null(metric)){
     # NULL means default of MLE
-  } else if(metric == "mle"){
+  }else if(metric == "mle"){
     # also use mle (i.e., do nothing)
-  } else if(metric == "unit") {
+  }else if(metric == "unit"){
     # Identity in unbounded space
     cmd <- paste0(cmd, " -mcdiag")
-  } else {
-    stop("Invalid metric option")
+  }else{
+    stop("Invalid metric option", call. = FALSE)
   }
   # Write the starting values to file. A `NULL` value means to use the MLE,
   # so need to run model
   if(!is.null(init)){
     cmd <- paste0(cmd, " -mcpin init.pin")
-    write.table(file = file.path(path, "init.pin"), x = unlist(init), row.names = FALSE, col.names = FALSE)
+    write.table(file = file.path(path, "init.pin"),
+                x = unlist(init),
+                row.names = FALSE,
+                col.names = FALSE)
   }
-  if(!is.null(admb_args)) cmd <- paste(cmd, admb_args)
+  if(!is.null(admb_args)){
+    cmd <- paste(cmd, admb_args)
+  }
 
   # Run it and get results
   if(!is.null(fn_logfile)){
     cmd <- paste0(cmd, " > ", fn_logfile, " 2>&1")
   }
 
-  runtime <- microbenchmark(system_(cmd, ignore.stdout = !verbose),
-                            times = 1)
+  sys_out <- system_(cmd, intern = TRUE)
+  sys_attr <- attributes(sys_out)
+  if(!is.null(sys_attr$status) && sys_attr$status){
+    stop("The `system()` call failed with status ", sys_attr$status, ":\n",
+         cmd, call. = FALSE)
+  }
 
   unbounded_fn <- file.path(path, "unbounded.csv")
   if(!file.exists(unbounded_fn)){
@@ -103,7 +122,6 @@ sample_admb_rwm <- function(path,
   # it here
   list(samples = pars,
        sampler_params = NULL,
-       runtime = runtime,
        warmup = warmup,
        model = model,
        par_names = par_names,

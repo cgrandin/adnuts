@@ -1,23 +1,12 @@
-#' Bayesian inference of an ADMB model using the no-U-turn
-#' sampler (`NUTS`) or random walk Metropolis (`RWM`) algorithms.
+#' Run an ADMB model using the No-U-Turn Sampler (`NUTS`) or
+#' Random Walk Metropolis (`RWM`) algorithms.
 #'
 #' @description
 #' Draw Bayesian posterior samples from an AD Model Builder
-#' (ADMB) model using an MCMC algorithm. `sample_admb(algorithm = 'nuts')`
-#' generates posterior samples from which inference can be made. Adaptation
-#' schemes are used with NUTS so specifying tuning parameters is
-#' not necessary, and parallel execution reduces overall run
-#' time.
-#'
-#' The `RWM` algorithm provides no new functionality not available
-#' from previous versions of `ADMB`. However, `sample_admb(algorithm = 'rwm')`
-#' has an improved console output, is setup for parallel execution, and
-#' a smooth workflow for diagnostics. Note that the algorithms'
-#' code lies in the ADMB source code, and [adnuts] provides a
-#' wrapper for it. See vignette for more information.
+#' (ADMB) model using an MCMC algorithm.
 #'
 #' @details
-#'  This function implements algorithm 6 of Hoffman and Gelman (2014),
+#' This function implements algorithm 6 of Hoffman and Gelman (2014),
 #' and loosely follows package [rstan]. The step size can be
 #' adapted or specified manually. The metric (i.e., mass matrix) can be
 #' unit diagonal, adapted diagonal (default and recommended), a dense
@@ -25,73 +14,83 @@
 #' Further control of algorithms can be
 #' specified with the `control` argument.
 #' The adaptation scheme (step size and mass matrix) is based heavily on
-#' those by the software Stan, and more details can be found in that
+#' those by the software `Stan`, and more details can be found in that
 #' documentation and the vignette.
 #'
-#' @author Cole Monnahan
+#' For example, `sample_admb(algorithm = 'nuts')`
+#' generates posterior samples from which inference can be made. Adaptation
+#' schemes are used with NUTS so specifying tuning parameters is
+#' not necessary, and parallel execution reduces overall run
+#' time.
+#'
+#' The `RWM` algorithm provides no new functionality not available
+#' from previous versions of `ADMB`. However, `sample_admb(algorithm = 'rwm')`
+#' is setup for parallel execution. Note that the algorithms'
+#' code lies in the ADMB source code, and [adnuts] provides a
+#' wrapper for it.
+#'
 #' @param model Name of model (i.e., model.tpl)
 #' @param path Path to model executable. Defaults to working
-#'   directory. Often best to have model files in a separate
-#'   subdirectory, particularly for parallel.
-#' @param iter The number of samples to draw.
+#' directory. Often best to have model files in a separate
+#' subdirectory, particularly for parallel.
+#' @param num_samples The number of samples to draw.
 #' @param init A list of lists containing the initial parameter
-#'   vectors, one for each chain or a function. It is strongly
-#'   recommended to initialize multiple chains from dispersed
-#'   points. A of NULL signifies to use the starting values
-#'   present in the model (i.e., `obj$par`) for all chains.
+#' vectors, one for each chain or a function. It is strongly
+#' recommended to initialize multiple chains from dispersed
+#' points. A of NULL signifies to use the starting values
+#' present in the model (i.e., `obj$par`) for all chains.
 #' @param num_chains The number of chains to run. If greater than 1,
 #' use parallel execution (1 core per chain)
 #' @param warmup The number of warm up iterations.
 #' @param seeds A vector of seeds, one for each chain.
 #' @param thin The thinning rate to apply to samples. Typically
-#'   not used with NUTS.
+#' not used with NUTS.
 #' @param mceval Whether to run the model with `-mceval` on
-#'   samples from merged chains.
+#' samples from merged chains.
 #' @param duration The number of minutes after which the model
-#'   will quit running.
+#' will quit running.
 #' @param control A list to control the sampler. See details for
-#'   further use.
+#' further use.
 #' @param algorithm The algorithm to use, one of `nuts` or `rwm`
 #' @param skip_optimization Whether to run the optimizer before
-#'   running MCMC. This is rarely need as it is better to run it
-#'   once before to get the covariance matrix, or the estimates
-#'   are not needed with adaptive NUTS.
+#' running MCMC. This is rarely need as it is better to run it
+#' once before to get the covariance matrix, or the estimates
+#' are not needed with adaptive NUTS.
 #' @param skip_monitor Whether to skip calculating diagnostics
-#'   (effective sample size, Rhat) via the `rstan::monitor`
-#'   function. This can be slow for models with high dimension or
-#'   many iterations. The result is used in plots and summaries
-#'   so it is recommended to turn on. If model run with
-#'   `skip_monitor = FALSE` you can recreate it post-hoc by
-#'   setting `fit$monitor=rstan::monitor(fit$samples,
-#'   fit$warmup, print=FALSE)`
+#' (effective sample size, Rhat) via the `rstan::monitor`
+#' function. This can be slow for models with high dimension or
+#' many iterations. The result is used in plots and summaries
+#' so it is recommended to turn on. If model run with
+#' `skip_monitor = FALSE` you can recreate it post-hoc by
+#' setting `fit$monitor=rstan::monitor(fit$samples,
+#' fit$warmup, print=FALSE)`
 #' @param skip_unbounded Whether to skip returning the unbounded
-#'   version of the posterior samples in addition to the bounded
-#'   ones. It may be advisable to set to FALSE for very large
-#'   models to save space
+#' version of the posterior samples in addition to the bounded
+#' ones. It may be advisable to set to FALSE for very large
+#' models to save space
 #' @param admb_args A character string which gets passed to the
-#'   command line, allowing finer control
+#' command line, allowing finer control
 #' @param adapt_delta The target acceptance rate
 #' @param metric The mass metric to use. Options are: "unit" for a unit diagonal
-#'   matrix; `NULL` to estimate a diagonal matrix during warmup; a matrix
-#'   to be used directly (in untransformed space)
+#' matrix; `NULL` to estimate a diagonal matrix during warmup; a matrix
+#' to be used directly (in untransformed space)
 #' @param adapt_delta Whether adaptation of step size is turned on.
 #' @param adapt_mass Whether adaptation of mass matrix is turned
-#'   on. Currently only allowed for diagonal metric
+#' on. Currently only allowed for diagonal metric
 #' @param adapt_mass_dense Whether dense adaptation of mass
-#'   matrix is turned on
+#' matrix is turned on
 #' @param max_treedepth Maximum treedepth for the NUTS algorithm
 #' @param stepsize The stepsize for the NUTS algorithm. If `NULL` it
-#'   will be adapted during warmup
+#' will be adapted during warmup
 #' @param adapt_init_buffer The initial buffer size during mass matrix
-#'   adaptation where sample information is not used (default
-#'   50)
+#' adaptation where sample information is not used (default 50)
 #' @param adapt_term_buffer The terminal buffer size (default 75)
-#'   during mass matrix adpatation (final fast phase)
+#' during mass matrix adpatation (final fast phase)
 #' @param adapt_window The initial size of the mass matrix
-#'   adaptation window, which gets doubled each time thereafter
+#' adaptation window, which gets doubled each time thereafter
 #' @param refresh The rate at which to refresh progress to the
-#'   console. Defaults to even 10%. A value of 0 turns off
-#'   progress updates
+#' console. Defaults to even 10%. A value of 0 turns off
+#' progress updates
 #' @param fn_logfile The name of a file to output `stdout` from `system()`
 #' calls to. If `NULL`, `stdout` will be printed to the screen
 #' @name samplers
@@ -100,13 +99,13 @@ NULL
 #' Sampling from ADMB models
 #'
 #' @rdname samplers
-#' @importFrom furrr future_map
+#' @importFrom furrr future_map furrr_options
 #' @importFrom future plan
 #' @importFrom parallel detectCores
 #' @export
 sample_admb <- function(model,
                         path = NULL,
-                        iter = 2000,
+                        num_samples = 2000,
                         init = NULL,
                         num_chains = 3,
                         warmup = NULL,
@@ -156,11 +155,11 @@ sample_admb <- function(model,
     message("seeds is NULL, setting random seeds: ",
             paste(seeds, collapse = ", "))
   }
-  if(iter <= 1 || !is.numeric(iter)){
-    stop("iter must be > 1", call. = FALSE)
+  if(num_samples <= 1 || !is.numeric(num_samples)){
+    stop("`num_samples` must be > 1", call. = FALSE)
   }
 
-  model <- get_model_executable(model, path)
+  model <- get_model_executable(model, loc_dir = path)
 
   v <- check_admb_version(exe = model)
 
@@ -171,8 +170,8 @@ sample_admb <- function(model,
   }
 
   if(is.null(warmup)){
-    warmup <- floor(iter / 2)
-    message("`warmup` is `NULL`, setting to `floor(iter / 2)` = ", warmup)
+    warmup <- floor(num_samples / 2)
+    message("`warmup` is `NULL`, setting to `floor(num_samples / 2)` = ", warmup)
   }
 
   if(algorithm == "nuts"){
@@ -211,7 +210,7 @@ sample_admb <- function(model,
                      model = model,
                      duration = duration,
                      algorithm = algorithm,
-                     iter = iter,
+                     num_samples = num_samples,
                      init = init[[i]],
                      warmup = warmup,
                      seed = seeds[i],
@@ -220,7 +219,8 @@ sample_admb <- function(model,
                      skip_optimization = skip_optimization,
                      admb_args = admb_args,
                      hess_step = hess_step,
-                     fn_logfile = fn_logfile))
+                     fn_logfile = fn_logfile),
+    .options = furrr_options(seed = TRUE))
   if(num_chains > 1){
     plan()
   }
@@ -235,11 +235,11 @@ sample_admb <- function(model,
     par_names <- mle$par_names
   }
   iters <- map_dbl(mcmc_out, ~{dim(.x$samples)[1]})
-  if(any(iters != iter / thin)){
+  if(any(iters != num_samples / thin)){
     chain_length <- rep(min(iters), length(iters))
     warning("Variable chain lengths, truncating to minimum = ", chain_length)
   }else{
-    chain_length <- iter / thin
+    chain_length <- num_samples / thin
   }
 
   samples <- array(NA, dim = c(chain_length, num_chains, 1 + length(par_names)),
@@ -264,12 +264,6 @@ sample_admb <- function(model,
       .x$sampler_params[seq_len(chain_length), ]
     })
   }
-  runtime <- map_dbl(mcmc_out, ~{
-    if(is.null(.x$runtime)){
-      return(NA_real_)
-    }
-    .x$runtime$time / 1e6
-  })
   cmd <- map_chr(mcmc_out, ~{.x$cmd})
   if(chain_length < warmup){
     warning("Duration too short to finish warmup period")
@@ -317,7 +311,6 @@ sample_admb <- function(model,
   result <- list(samples = samples,
                  sampler_params = sampler_params,
                  samples_unbounded = samples_unbounded,
-                 runtime = runtime,
                  algorithm = algorithm,
                  warmup = warmup,
                  model = model,

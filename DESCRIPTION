@@ -34,7 +34,6 @@ Imports:
   future,
   ggplot2,
   matrixcalc,
-  microbenchmark,
   parallel,
   purrr,
   rlang,
