@@ -91,9 +91,11 @@ print_adfit <- function(x, ...){
   pars <- dim(x$samples)[3]-1
   samples <- (iter - x$warmup) * chains
 
-  cat(paste0("Model `", x$model,"`", " has ", pars, " pars, and was fit using `",
-             x$algorithm, "`` with `", iter, "` iter and `", chains,
-             "` chains\n"))
+  msg <- paste0("Model `",
+                x$model,"` has ", pars, " pars, and was fit using `",
+                x$algorithm, "` with `", iter, "` iter and `", chains,
+                "` chains\n")
+  browser()
 
   rt <- sum(x$runtime) / chains
 

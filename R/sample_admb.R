@@ -102,6 +102,7 @@ NULL
 #' @importFrom furrr future_map furrr_options
 #' @importFrom future plan
 #' @importFrom parallel detectCores
+#' @importFrom purrr map_dbl
 #' @export
 sample_admb <- function(model,
                         path = NULL,
@@ -199,31 +200,25 @@ sample_admb <- function(model,
     unlink(file.path(path, files_to_remove))
   }
 
-  map_func <- `if`(num_chains > 1, future_map, map)
-
-  if(num_chains > 1){
-    plan("multisession", workers = num_chains)
-  }
-  mcmc_out <- map_func(seq_len(num_chains), function(i)
-    run_admb_sampler(chain_num = i,
+  plan("multisession", workers = num_chains)
+  mcmc_out <- future_map(seq_len(num_chains), function(chain_ind){
+    run_admb_sampler(chain_num = chain_ind,
                      path = path,
                      model = model,
                      duration = duration,
                      algorithm = algorithm,
                      num_samples = num_samples,
-                     init = init[[i]],
+                     init = init[[chain_ind]],
                      warmup = warmup,
-                     seed = seeds[i],
+                     seed = seeds[chain_ind],
                      thin = thin,
                      control = control,
                      skip_optimization = skip_optimization,
                      admb_args = admb_args,
                      hess_step = hess_step,
-                     fn_logfile = fn_logfile),
-    .options = furrr_options(seed = TRUE))
-  if(num_chains > 1){
-    plan()
-  }
+                     fn_logfile = fn_logfile)
+  }, .options = furrr_options(seed = TRUE))
+  plan()
 
   warmup <- mcmc_out[[1]]$warmup
   mle <- read_mle_fit(path)
@@ -308,11 +303,20 @@ sample_admb <- function(model,
     dimnames(samples)[[3]] <- NULL
     mon <- monitor(samples, warmup, print = FALSE)
   }
+
+  trim_logfiles(path)
+  runtimes <- get_runtimes(path)
+
   result <- list(samples = samples,
                  sampler_params = sampler_params,
                  samples_unbounded = samples_unbounded,
                  algorithm = algorithm,
                  warmup = warmup,
+                 warmup_time = runtimes$warmup_time,
+                 sampling_time = runtimes$sampling_time,
+                 total_time = runtimes$total_time,
+                 final_acceptance_ratio = runtimes$final_acceptance_ratio,
+                 final_step_size = runtimes$final_step_size,
                  model = model,
                  max_treedepth = mcmc_out[[1]]$max_treedepth,
                  cmd = cmd,
