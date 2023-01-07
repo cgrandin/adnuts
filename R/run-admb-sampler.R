@@ -67,9 +67,9 @@ run_admb_sampler <- function(chain_num,
     }
   }
 
-  # unlink(chain_dir,
-  #        recursive = TRUE,
-  #        force = TRUE)
+  unlink(chain_dir,
+         recursive = TRUE,
+         force = TRUE)
 
   fit
 }
