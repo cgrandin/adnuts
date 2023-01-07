@@ -271,6 +271,7 @@ sample_admb <- function(model,
     samples[-seq_len(warmup), .x, -dim(samples)[3]]
   }) %>%
     do.call(rbind, .)
+
   write_psv(path = path,
             fn_psv = model,
             samples = sa)
@@ -279,17 +280,41 @@ sample_admb <- function(model,
     .x$unbounded
   }) %>%
     do.call(rbind, .)
-  write.csv(unbounded,
-            file.path(path, "unbounded.csv"),
-            row.names = FALSE)
 
+  write.table(unbounded,
+              file = file.path(path, "unbounded.csv"),
+              sep = ",",
+              col.names = FALSE,
+              row.names = FALSE)
   if(mceval){
     message("Running -mceval on merged chains")
-    mceval_cmd <- paste0("cd ", path, " && ", model, " -mceval")
-    if(!is.null(fn_logfile)){
-      mceval_cmd <- paste0(mceval_cmd, " > ", fn_logfile, " 2>&1")
+    # Make sure for Stock synthesis, the psv file is changed to ss.psv
+    # if it is ss2.psv, ss3.psv, etc
+    fns <- list.files(path, full.names = TRUE)
+    fn_psv_ind <- grep("\\.psv$", fns)
+    if(length(fn_psv_ind)){
+      if(length(fn_psv_ind) > 1){
+        stop("There is more than one psv file in the directory:\n",
+             path,
+             call. = FALSE)
+      }
+      fn_psv <- fns[fn_psv_ind]
+      is_ss_model <- grep("^ss[0-9]+\\.psv$", basename(fn_psv))
+      if(length(is_ss_model) && is_ss_model){
+        dname <- dirname(fn_psv)
+        new_fn_psv <- file.path(dname, "ss.psv")
+        file.copy(fn_psv, new_fn_psv)
+        unlink(fn_psv, force = TRUE)
+      }
+      mceval_cmd <- paste0("cd ", path, " && ", model, " -mceval")
+      if(!is.null(fn_logfile)){
+        mceval_cmd <- paste0(mceval_cmd, " > ", fn_logfile, " 2>&1")
+      }
+      system_(mceval_cmd, ignore.stdout = FALSE)
+    }else{
+      warning("There is no psv file in the directory:\n", path, "\n",
+              "mceval not run")
     }
-    system_(mceval_cmd, ignore.stdout = FALSE)
   }
 
   covar_est <- cov(unbounded)

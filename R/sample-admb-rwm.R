@@ -97,7 +97,7 @@ sample_admb_rwm <- function(path,
     cmd <- paste0(cmd, " > ", fn_logfile, " 2>&1")
   }
 
-  sys_out <- system_(cmd, intern = TRUE)
+  sys_out <- system_(cmd, intern = TRUE, wait = TRUE)
   sys_attr <- attributes(sys_out)
   if(!is.null(sys_attr$status) && sys_attr$status){
     stop("The `system()` call failed with status ", sys_attr$status, ":\n",

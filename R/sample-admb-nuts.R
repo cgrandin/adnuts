@@ -92,7 +92,7 @@ sample_admb_nuts <- function(path,
       stop("Invalid mass matrix passed: it is not positive definite.\n",
            "Check 'metric' argument or use different option.",
            call. = FALSE)
-    write_admb_cov(metric, path, hbf = 1)
+    write_admb_cov(path, cov_unbounded = metric, hbf = 1)
     warning("admodel.cov overwritten, revert admodel_original.cov if needed")
   }else if(is.character(metric) && metric == "unit") {
     # The default: Start from unit diag.

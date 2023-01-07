@@ -29,10 +29,10 @@ write_admb_cov <- function(path = NULL,
     hbf = results$hybrid_bounded_flag
   }
   scale <- results$scale
-  num_pars <- results$num.pars
+  num_pars <- results$num_pars
   if(nrow(cov_unbounded) != num_pars)
-    stop("Invalid size of covariance matrix, should be: ", num_pars,
-         " instead of ", nrow(cov_unbounded),
+    stop("Invalid size of covariance matrix, has ", nrow(cov_unbounded),
+         " rows but should have ", num_pars,
          call. = FALSE)
 
   # Write it to file using original scales, although these are ignored.
@@ -42,4 +42,5 @@ write_admb_cov <- function(path = NULL,
   writeBin(as.vector(as.numeric(cov_unbounded)), file_new)
   writeBin(as.integer(hbf), file_new)
   writeBin(as.vector(scale), file_new)
+  invisible()
 }
