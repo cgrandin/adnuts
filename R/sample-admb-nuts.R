@@ -88,12 +88,13 @@ sample_admb_nuts <- function(path,
   if(is.matrix(metric)){
     # User defined one will be writen to admodel.cov
     cor_user <- metric / sqrt(diag(metric) %o% diag(metric))
-    if(!is.positive.definite(x = cor_user))
+    if(!is.positive.definite(x = cor_user)){
       stop("Invalid mass matrix passed: it is not positive definite.\n",
            "Check 'metric' argument or use different option.",
            call. = FALSE)
+    }
     write_admb_cov(path, cov_unbounded = metric, hbf = 1)
-    warning("admodel.cov overwritten, revert admodel_original.cov if needed")
+    #warning("admodel.cov overwritten, revert admodel_original.cov if needed")
   }else if(is.character(metric) && metric == "unit") {
     # The default: Start from unit diag.
     cmd <- paste0(cmd, " -mcdiag")
