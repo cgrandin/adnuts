@@ -10,7 +10,7 @@
 #' that Stan models are examined.
 #' @param fit Output list from [sample_admb()].
 #' @seealso [launch_shinyadmb()]
-#' @importFrom shinystan as.shinystan
+#' @importFrom shinystan as.shinystan launch_shinystan
 #' @return An S4 object of class `shinystan`. Depending on the algorithm
 #' used, this list will have slight differences.
 as_shiny_nuts <- function(fit){
@@ -21,7 +21,7 @@ as_shiny_nuts <- function(fit){
                 as.shinystan(samples,
                              warmup = warmup,
                              max_treedepth = max_treedepth,
-                             sampler_params=sampler_params,
+                             sampler_params = sampler_params,
                              algorithm = "NUTS",
                              model_name = model))
   }else if(fit$algorithm == "HMC"){

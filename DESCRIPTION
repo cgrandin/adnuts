@@ -20,7 +20,6 @@ ByteCompile: true
 Depends:
   R (>= 3.6.0)
 Suggests:
-  shinystan (>= 2.5.0),
   matrixcalc (>= 1.0.3),
   stats,
   knitr,
@@ -39,6 +38,7 @@ Imports:
   rlang,
   rstan,
   R2admb,
+  shinystan (>= 2.5.0),
   tibble
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)

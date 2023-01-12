@@ -77,7 +77,7 @@ pairs_admb <- function(fit,
   }
   posterior <- extract_samples(fit, inc_lp=TRUE, unbounded=unbounded)
   chains <- rep(1:dim(fit$samples)[2], each=dim(fit$samples)[1]-fit$warmup)
-  divs <- if(fit$algorithm=="NUTS")
+  divs <- if(fit$algorithm == "nuts")
             extract_sampler_params(fit)$divergent__ else NULL
   ptcex <- .2
   divcex <- .75
