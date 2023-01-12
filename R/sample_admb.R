@@ -254,7 +254,7 @@ sample_admb <- function(model,
               mcmc_out[[i]]$samples[, 1 + length(par_names)])
   }
   sampler_params <- NULL
-  if(algorithm == "NUTS"){
+  if(algorithm == "nuts"){
     sampler_params <- map(mcmc_out, ~{
       .x$sampler_params[seq_len(chain_length), ]
     })
