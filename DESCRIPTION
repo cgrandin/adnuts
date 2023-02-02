@@ -20,7 +20,6 @@ ByteCompile: true
 Depends:
   R (>= 3.6.0)
 Suggests:
-  matrixcalc (>= 1.0.3),
   stats,
   knitr,
   TMB,
@@ -32,12 +31,12 @@ Imports:
   furrr,
   future,
   ggplot2,
-  matrixcalc,
+  matrixcalc (>= 1.0.3),
+  microbenchmark,
   parallel,
   purrr,
   rlang,
   rstan,
-  R2admb,
   shinystan (>= 2.5.0),
   tibble
 VignetteBuilder: knitr
