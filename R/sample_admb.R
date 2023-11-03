@@ -286,35 +286,36 @@ sample_admb <- function(model,
               sep = ",",
               col.names = FALSE,
               row.names = FALSE)
+
   if(mceval){
     message("Running -mceval on merged chains")
     # Make sure for Stock synthesis, the psv file is changed to ss.psv
     # if it is ss2.psv, ss3.psv, etc
     fns <- list.files(path, full.names = TRUE)
     fn_psv_ind <- grep("\\.psv$", fns)
-    if(length(fn_psv_ind)){
-      if(length(fn_psv_ind) > 1){
-        stop("There is more than one psv file in the directory:\n",
-             path,
-             call. = FALSE)
-      }
-      fn_psv <- fns[fn_psv_ind]
-      is_ss_model <- grep("^ss[0-9]+\\.psv$", basename(fn_psv))
-      if(length(is_ss_model) && is_ss_model){
-        dname <- dirname(fn_psv)
-        new_fn_psv <- file.path(dname, "ss.psv")
-        file.copy(fn_psv, new_fn_psv)
-        unlink(fn_psv, force = TRUE)
-      }
-      mceval_cmd <- paste0("cd ", path, " && ", model, " -mceval")
-      if(!is.null(fn_logfile)){
-        mceval_cmd <- paste0(mceval_cmd, " > ", fn_logfile, " 2>&1")
-      }
-      system_(mceval_cmd, ignore.stdout = FALSE)
-    }else{
-      warning("There is no psv file in the directory:\n", path, "\n",
-              "mceval not run")
+    if(!length(fn_psv_ind)){
+      stop("`sample_admb()`: There is no psv file present in the `", path,
+           "` directory. -mceval cannot be run",
+           call. = FALSE)
     }
+    if(length(fn_psv_ind) > 1){
+        stop("`sample_admb()`: There is more than one psv file in ",
+             "the directory:\n", path,
+             call. = FALSE)
+    }
+    fn_psv <- fns[fn_psv_ind]
+    dname <- dirname(fn_psv)
+    new_fn_psv <- file.path(dname, "ss.psv")
+    if(!file.rename(fn_psv, new_fn_psv)){
+      stop("`sample_admb()` in the mceval step, could not rename the ",
+           "psv file from `", fn_psv, "` to `", new_fn_psv, "`",
+           call. = FALSE)
+    }
+    mceval_cmd <- paste0("cd ", path, " && ", model, " -mceval")
+    if(!is.null(fn_logfile)){
+      mceval_cmd <- paste0(mceval_cmd, " > ", fn_logfile, " 2>&1")
+    }
+    system_(mceval_cmd, ignore.stdout = FALSE)
   }
 
   covar_est <- cov(unbounded)
