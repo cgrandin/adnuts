@@ -14,9 +14,6 @@
 #' plot_sampler_params(fit)
 plot_sampler_params <- function(fit, plot = TRUE){
 
-  if(!requireNamespace("ggplot2", quietly = TRUE))
-    stop("ggplot2 package not found",
-         call. = FALSE)
   sp <- extract_sampler_params(fit, inc_warmup = TRUE)
   sp_long <- data.frame(iteration = sp$iteration,
                         chain = factor(sp$chain),
