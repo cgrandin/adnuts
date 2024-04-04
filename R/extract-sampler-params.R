@@ -30,6 +30,7 @@ extract_sampler_params <- function(fit, inc_warmup = FALSE){
     stop("`fit$sampler_parameters` is not a list",
          call. = FALSE)
   }
+
   if(inc_warmup){
     ind <- seq_len(dim(x[[1]])[1])
     its <- seq_along(ind)
@@ -37,8 +38,9 @@ extract_sampler_params <- function(fit, inc_warmup = FALSE){
     ind <- -seq_len(fit$warmup)
     its <- seq_len(ind) + fit$warmup
   }
+
   y <- do.call(rbind,
-               lapply(seq_len(x), function(i){
+               lapply(seq_along(x), function(i){
                  cbind(chain = i, iteration = its, x[[i]][ind, ])
                }))
 
