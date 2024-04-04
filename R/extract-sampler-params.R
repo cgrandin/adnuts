@@ -19,30 +19,43 @@
 #' together
 #' @seealso [launch_shinyadmb()]
 #' @export
+#'
+#' @importFrom purrr imap_dfr
+#'
 #' @examples
 #' fit <- readRDS(system.file('examples', 'fit.RDS', package='adnuts'))
 #' sp <- extract_sampler_params(fit, inc_warmup=TRUE)
 #' str(sp)
-extract_sampler_params <- function(fit, inc_warmup = FALSE){
+extract_sampler_params <- function(fit,
+                                   inc_warmup = TRUE){
 
-  x <- fit$sampler_params
-  if(!is.list(x)){
-    stop("`fit$sampler_parameters` is not a list",
-         call. = FALSE)
+  sampler_params_lst <- fit$sampler_params
+  if(!is.list(sampler_params_lst)){
+    stop("`fit$sampler_parameters` is not a list")
   }
 
-  if(inc_warmup){
-    ind <- seq_len(dim(x[[1]])[1])
-    its <- seq_along(ind)
-  }else{
-    ind <- -seq_len(fit$warmup)
-    its <- seq_len(ind) + fit$warmup
-  }
+  d <- imap_dfr(sampler_params_lst, ~{
 
-  y <- do.call(rbind,
-               lapply(seq_along(x), function(i){
-                 cbind(chain = i, iteration = its, x[[i]][ind, ])
-               }))
+    nrow_sampler_params <- dim(sampler_params_lst[[.y]])[1]
 
-  invisible(as.data.frame(y))
+    its <- seq_len(nrow_sampler_params)
+    num_its <- length(its)
+    num_warmup <- fit$warmup
+    if(!inc_warmup){
+      num_its <- num_its - num_warmup
+      its <- seq_len(num_its)
+      .x <- .x |>
+        tail(-num_warmup)
+    }
+
+    .x |>
+      as_tibble() |>
+      mutate(chain = .y,
+             iteration = its) |>
+      select(chain,
+             iteration,
+             everything())
+  })
+
+  d
 }

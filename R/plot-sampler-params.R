@@ -1,44 +1,58 @@
 #' Plot adaptation metrics for a fitted model.
 #'
-#' @param fit A fitted object returned by
-#' [sample_admb()].
-#' @param plot Whether to plot the results
+#' @details This utility function quickly plots the adaptation output of NUTS
+#'  chains.
+#'
+#' @param fit A fitted object returned by [sample_admb()].
+#' @param ... Arguments passed to [extract_sampler_params()]
+#'
 #' @return Prints and invisibly returns a ggplot object
 #'
-#' @details This utility function quickly plots the adaptation output of NUTS
-#' chains.
 #' @importFrom rlang .data
 #' @export
 #' @examples
 #' fit <- readRDS(system.file('examples', 'fit.RDS', package='adnuts'))
 #' plot_sampler_params(fit)
-plot_sampler_params <- function(fit, plot = TRUE){
+plot_sampler_params <- function(fit,
+                                label_size = 12,
+                                label_face = c("plain",
+                                               "bold",
+                                               "italic"),
+                                ...){
 
-  sp <- extract_sampler_params(fit, inc_warmup = TRUE)
-  sp_long <- data.frame(iteration = sp$iteration,
-                        chain = factor(sp$chain),
-                        value = c(sp$accept_stat__,
-                                  log(sp$stepsize__),
-                                  sp$n_leapfrog__,
-                                  sp$divergent__,
-                                  sp$energy__),
-                        variable = rep(c("accept_stat",
-                                         "log_stepsize",
-                                         "n_leapfrog",
-                                         "divergent",
-                                         "energy"),
-                                       each = nrow(sp)))
-  g <- ggplot(sp_long,
-              aes(iteration, y = value, color = chain)) +
+  label_face <- match.arg(label_face)
+
+  # `inc_warmup` may be passed to `extract_sampler_params()`` using `...``
+  sp <- extract_sampler_params(fit, ...)
+  # Remove trailing double-underscores from labels
+  names(sp) <- gsub("__", "", names(sp))
+  # Replace lower case letters at beginning of labels with capitals
+  names(sp) <- gsub("(?<=^|_)([a-z])",
+                    "\\U\\1",
+                    names(sp),
+                    perl = TRUE)
+  # Remove underscores from labels
+  names(sp) <- gsub("_", " ", names(sp))
+
+  sp_long <- sp |>
+    mutate(Stepsize = log(Stepsize),
+           Chain = factor(Chain)) |>
+    rename(`Log Stepsize` = Stepsize) |>
+    pivot_longer(cols = !c("Iteration", "Chain"))
+
+  g <- sp_long |>
+    ggplot(aes(Iteration,
+               y = value,
+               color = Chain)) +
     geom_point(alpha = 0.5) +
-    facet_wrap("variable",
+    facet_wrap("name",
                scales = "free_y",
                ncol = 1) +
-    theme_bw()
+    scale_color_viridis_d() +
+    theme_bw() +
+    theme(strip.background = element_rect(fill = "white"),
+          strip.text = element_text(size = label_size,
+                                    face = label_face))
 
-  if(plot){
-    return(g)
-  }
-
-  invisible(g)
+  g
 }

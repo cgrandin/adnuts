@@ -4,13 +4,17 @@
 \alias{plot_sampler_params}
 \title{Plot adaptation metrics for a fitted model.}
 \usage{
-plot_sampler_params(fit, plot = TRUE)
+plot_sampler_params(
+  fit,
+  label_size = 12,
+  label_face = c("plain", "bold", "italic"),
+  ...
+)
 }
 \arguments{
-\item{fit}{A fitted object returned by
-\code{\link[=sample_admb]{sample_admb()}}.}
+\item{fit}{A fitted object returned by \code{\link[=sample_admb]{sample_admb()}}.}
 
-\item{plot}{Whether to plot the results}
+\item{...}{Arguments passed to \code{\link[=extract_sampler_params]{extract_sampler_params()}}}
 }
 \value{
 Prints and invisibly returns a ggplot object

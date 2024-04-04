@@ -4,7 +4,7 @@
 \alias{extract_sampler_params}
 \title{Extract sampler parameters from a fit.}
 \usage{
-extract_sampler_params(fit, inc_warmup = FALSE)
+extract_sampler_params(fit, inc_warmup = TRUE)
 }
 \arguments{
 \item{fit}{A list returned by \code{\link[=sample_admb]{sample_admb()}}}
