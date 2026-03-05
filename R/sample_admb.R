@@ -42,7 +42,8 @@
 #' @param num_chains The number of chains to run. If greater than 1,
 #' use parallel execution (1 core per chain)
 #' @param warmup The number of warm up iterations.
-#' @param seeds A vector of seeds, one for each chain.
+#' @param seed A seed value used to create a vector of seeds, one for each
+#' chain
 #' @param thin The thinning rate to apply to samples. Typically
 #' not used with NUTS.
 #' @param mceval Whether to run the model with `-mceval` on
@@ -110,7 +111,7 @@ sample_admb <- function(model,
                         init = NULL,
                         num_chains = 3,
                         warmup = NULL,
-                        seeds = NULL,
+                        seed = 42,
                         thin = 1,
                         mceval = FALSE,
                         duration = NULL,
@@ -151,11 +152,15 @@ sample_admb <- function(model,
          call. = FALSE)
   }
 
-  if(is.null(seeds)){
-    seeds <- sample.int(1e7, size = num_chains)
-    message("seeds is NULL, setting random seeds: ",
-            paste(seeds, collapse = ", "))
+  if(is.null(seed) || is.na(seed)){
+    stop("You must supply a seed value")
   }
+  set.seed(seed)
+  seeds <- .Random.seed[1:num_chains]
+  message("Randomizing seed is ", seed, ", seeds vector produced from ",
+          seed, " for ", num_chains, " chains is: ",
+          paste(seeds, collapse = ", "))
+
   if(num_samples <= 1 || !is.numeric(num_samples)){
     stop("`num_samples` must be > 1", call. = FALSE)
   }

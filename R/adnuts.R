@@ -70,7 +70,7 @@
 #' Stan Development Team, 2016. RStan: The R interface to Stan. R package
 #' version 2.14.1. http://mc-stan.org.
 #'
-#' @docType package
+#' @docType _PACKAGE
 #' @name adnuts
 #' @importFrom ellipse ellipse
 #' @importFrom ggplot2 ggplot aes geom_point theme_bw facet_wrap

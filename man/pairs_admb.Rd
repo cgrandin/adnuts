@@ -73,7 +73,7 @@ Plot pairwise parameter posteriors and optionally the MLE points and
 confidence ellipses.
 }
 \details{
-This function is modified from the \code{\link[=pairs]{pairs()}}
+This function is modified from the \code{\link[ellipse:pairs.profile]{ellipse::pairs()}}
 code to work specifically with fits from the
 \link{adnuts} package using either the NUTS or RWM MCMC
 algorithms. If an invertible Hessian was found (in \code{fit$mle})

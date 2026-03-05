@@ -26,7 +26,7 @@ sample_admb_nuts(
   chain = 1,
   thin = 1,
   warmup = NULL,
-  seed = NULL,
+  seed = 42,
   duration = NULL,
   control = NULL,
   skip_optimization = TRUE,
@@ -45,7 +45,7 @@ sample_admb_rwm(
   chain = 1,
   thin = 1,
   warmup = ceiling(num_samples/2),
-  seed = NULL,
+  seed = 42,
   duration = NULL,
   control = NULL,
   skip_optimization = TRUE,
@@ -62,7 +62,7 @@ sample_admb(
   init = NULL,
   num_chains = 3,
   warmup = NULL,
-  seeds = NULL,
+  seed = 42,
   thin = 1,
   mceval = FALSE,
   duration = NULL,
@@ -105,6 +105,9 @@ not used with NUTS.}
 
 \item{warmup}{The number of warm up iterations.}
 
+\item{seed}{A seed value used to create a vector of seeds, one for each
+chain}
+
 \item{duration}{The number of minutes after which the model
 will quit running.}
 
@@ -123,8 +126,6 @@ command line, allowing finer control}
 
 \item{num_chains}{The number of chains to run. If greater than 1,
 use parallel execution (1 core per chain)}
-
-\item{seeds}{A vector of seeds, one for each chain.}
 
 \item{mceval}{Whether to run the model with \code{-mceval} on
 samples from merged chains.}
@@ -188,7 +189,7 @@ Draw Bayesian posterior samples from an AD Model Builder
 }
 \details{
 This function implements algorithm 6 of Hoffman and Gelman (2014),
-and loosely follows package \link{rstan}. The step size can be
+and loosely follows package \link[rstan:rstan]{rstan::rstan}. The step size can be
 adapted or specified manually. The metric (i.e., mass matrix) can be
 unit diagonal, adapted diagonal (default and recommended), a dense
 matrix specified by the user, or an adapted dense matrix.
